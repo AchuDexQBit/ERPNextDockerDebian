@@ -13,13 +13,16 @@ WORKDIR /home/$systemUser/$benchFolderName
 
 ARG GITHUB_PAT_TOKEN
 
+ARG GITHUB_PAT_TOKEN
+
 RUN echo "-> Start builder" \
-    ### remove unused sites, created by base image
     && rm -rf /home/$systemUser/$benchFolderName/sites/site1.local \
-    ### [HOTFIX] Railway used IPv6 (Does not support IPv4)
-    ### https://docs.railway.com/guides/private-networking#caveats
-    ### https://github.com/frappe/frappe/issues/33981
     && sed -i 's/socket\.AF_INET, socket\.SOCK_STREAM/socket.AF_INET6, socket.SOCK_STREAM/g' /home/frappe/bench/apps/frappe/frappe/utils/connections.py \
+    ### remove existing erpnext and payments from base image
+    && bench remove-app erpnext --no-backup || true \
+    && bench remove-app payments --no-backup || true \
+    && rm -rf /home/$systemUser/$benchFolderName/apps/erpnext \
+    && rm -rf /home/$systemUser/$benchFolderName/apps/payments \
     ### install payments (ERPNext dependency)
     && bench get-app --branch version-15 https://github.com/frappe/payments \
     ### install your forked ERPNext
