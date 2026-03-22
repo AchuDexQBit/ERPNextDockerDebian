@@ -28,7 +28,7 @@ RUN echo "-> Start builder" \
     ### install your forked ERPNext
     && bench get-app --branch prod https://${GITHUB_PAT_TOKEN}@github.com/AchuDexQBit/erpnext \
     ### install your custom app (always last)
-    && bench get-app --branch dev https://${GITHUB_PAT_TOKEN}@github.com/AchuDexQBit/erpnext_wl_dqb_demo \
+    && bench get-app --branch prod https://${GITHUB_PAT_TOKEN}@github.com/AchuDexQBit/erpnext_wl_dqb_demo \
     && echo "-> Builder done!"
 
 
