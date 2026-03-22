@@ -11,14 +11,21 @@ FROM pipech/erpnext-docker-debian:version-15-latest AS builder
 USER $systemUser
 WORKDIR /home/$systemUser/$benchFolderName
 
+ARG GITHUB_PAT_TOKEN
+
 RUN echo "-> Start builder" \
     ### remove unused sites, created by base image
     && rm -rf /home/$systemUser/$benchFolderName/sites/site1.local \
-    ### [HOTFIX] Railway used IPv6 (Does not support IPv4),  https://docs.railway.com/guides/private-networking#caveats
+    ### [HOTFIX] Railway used IPv6 (Does not support IPv4)
+    ### https://docs.railway.com/guides/private-networking#caveats
     ### https://github.com/frappe/frappe/issues/33981
     && sed -i 's/socket\.AF_INET, socket\.SOCK_STREAM/socket.AF_INET6, socket.SOCK_STREAM/g' /home/frappe/bench/apps/frappe/frappe/utils/connections.py \
-    ### install your custom apps here
-    # && bench get-app https://github.com/your-repo/custom_app
+    ### install payments (ERPNext dependency)
+    && bench get-app --branch version-15 https://github.com/frappe/payments \
+    ### install your forked ERPNext
+    && bench get-app --branch prod https://${GITHUB_PAT_TOKEN}@github.com/AchuDexQBit/erpnext \
+    ### install your custom app (always last)
+    && bench get-app --branch dev https://${GITHUB_PAT_TOKEN}@github.com/AchuDexQBit/erpnext_wl_dqb_demo \
     && echo "-> Builder done!"
 
 
