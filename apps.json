@@ -8,6 +8,10 @@
     "branch": "version-15"
   },
   {
+    "url": "https://github.com/frappe/hrms",
+    "branch": "version-15"
+  },
+  {
     "url": "https://github.com/AchuDexQBit/erpnext_wl_dqb_demo",
     "branch": "prod"
   }
