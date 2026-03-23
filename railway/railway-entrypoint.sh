@@ -9,4 +9,8 @@ su frappe -c "ln -sf /home/frappe/bench/built_sites/assets /home/frappe/bench/si
 su frappe -c "ln -sf /home/frappe/bench/built_sites/apps.json /home/frappe/bench/sites/apps.json"
 su frappe -c "ln -sf /home/frappe/bench/built_sites/apps.txt /home/frappe/bench/sites/apps.txt"
 
+echo "-> Linking site assets"
+su frappe -c "mkdir -p /home/frappe/bench/sites/site1.local"
+su frappe -c "ln -sf /home/frappe/bench/sites/assets /home/frappe/bench/sites/site1.local/assets" || true
+
 exec "$@"

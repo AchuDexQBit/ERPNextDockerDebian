@@ -7,9 +7,6 @@ if [ ! -f "/home/frappe/bench/sites/${RFP_DOMAIN_NAME}/site_config.json" ]; then
     bash /home/frappe/bench/railway-setup.sh
 fi
 
-echo "-> Rebuilding assets"
-su frappe -c "cd /home/frappe/bench && bench build --production" || true
-
 echo "-> Clearing cache"
 su frappe -c "cd /home/frappe/bench && bench --site ${RFP_DOMAIN_NAME} clear-cache" || true
 
