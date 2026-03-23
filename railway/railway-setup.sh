@@ -18,9 +18,6 @@ su frappe -c "cd /home/frappe/bench && bench --site ${RFP_DOMAIN_NAME} install-a
 echo "-> Set default site"
 su frappe -c "cd /home/frappe/bench && bench use ${RFP_DOMAIN_NAME}"
 
-echo "-> Rebuild assets"
-su frappe -c "cd /home/frappe/bench && bench build --production"
-
 echo "-> Enable scheduler"
 su frappe -c "cd /home/frappe/bench && bench enable-scheduler"
 
