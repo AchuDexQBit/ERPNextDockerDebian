@@ -17,7 +17,7 @@ RUN echo "-> Start builder" \
     && rm -rf /home/$systemUser/$benchFolderName/apps/payments \
     && bench get-app --branch version-15 https://github.com/frappe/payments \
     && bench get-app --branch prod https://${GITHUB_PAT_TOKEN}@github.com/AchuDexQBit/erpnext \
-    && bench get-app --branch prod https://${GITHUB_PAT_TOKEN}@github.com/AchuDexQBit/erpnext_wl_dqb_demo \
+    && bench get-app --branch dev https://${GITHUB_PAT_TOKEN}@github.com/AchuDexQBit/erpnext_wl_dqb_demo \
     && echo "-> Builder done!"
 
 # ------------------------------------------
