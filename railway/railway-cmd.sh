@@ -7,6 +7,11 @@ if [ ! -f "/home/frappe/bench/sites/${RFP_DOMAIN_NAME}/site_config.json" ]; then
     bash /home/frappe/bench/railway-setup.sh
 fi
 
+# remove this section for prod release
+echo "-> Enabling developer mode"
+su frappe -c "cd /home/frappe/bench && bench --site ${RFP_DOMAIN_NAME} set-config developer_mode 1" || true
+# 
+
 echo "-> Clearing cache"
 su frappe -c "cd /home/frappe/bench && bench --site ${RFP_DOMAIN_NAME} clear-cache" || true
 
