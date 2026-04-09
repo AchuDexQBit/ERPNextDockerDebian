@@ -1,0 +1,14 @@
+[
+  {
+    "url": "https://github.com/AchuDexQBit/erpnext",
+    "branch": "prod"
+  },
+  {
+    "url": "https://github.com/frappe/payments",
+    "branch": "version-15"
+  },
+  {
+    "url": "https://x-access-token:${CUSTOMISATION_TOKEN}@github.com/AchuDexQBit/erpnext_app_dqb_distributors",
+    "branch": "dqb_distributors-prod"
+  }
+]

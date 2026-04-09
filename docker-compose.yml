@@ -1,0 +1,164 @@
+version: "3.8"
+
+networks:
+  internal:
+    driver: bridge
+    internal: true # no routing between stacks
+
+services:
+  backend:
+    image: ${IMAGE_TAG}
+    restart: unless-stopped
+    networks: [internal]
+    environment:
+      - DB_HOST=db
+      - DB_PORT=3306
+      - REDIS_CACHE=redis-cache:6379
+      - REDIS_QUEUE=redis-queue:6379
+      - SOCKETIO_PORT=9000
+    volumes:
+      - sites:/home/frappe/frappe-bench/sites
+    depends_on:
+      - db
+      - redis-cache
+      - redis-queue
+    deploy:
+      resources:
+        limits:
+          cpus: "${CPU_LIMIT}"
+          memory: "${MEM_LIMIT}"
+
+  frontend:
+    image: ${IMAGE_TAG}
+    restart: unless-stopped
+    networks: [internal]
+    command: nginx-entrypoint.sh
+    environment:
+      - BACKEND=backend:8000
+      - SOCKETIO=websocket:9000
+      - FRAPPE_dqb_distributors.localhost_HEADER=${dqb_distributors.localhost}
+    ports:
+      - "127.0.0.1:${EXTERNAL_PORT}:8080"
+    volumes:
+      - sites:/home/frappe/frappe-bench/sites
+    depends_on:
+      - backend
+    deploy:
+      resources:
+        limits:
+          cpus: "0.5"
+          memory: 256M
+
+  websocket:
+    image: ${IMAGE_TAG}
+    restart: unless-stopped
+    networks: [internal]
+    command: node /home/frappe/frappe-bench/apps/frappe/socketio.js
+    volumes:
+      - sites:/home/frappe/frappe-bench/sites
+    depends_on:
+      - redis-queue
+    deploy:
+      resources:
+        limits:
+          cpus: "0.25"
+          memory: 128M
+
+  queue-short:
+    image: ${IMAGE_TAG}
+    restart: unless-stopped
+    networks: [internal]
+    command: bench worker --queue short
+    volumes:
+      - sites:/home/frappe/frappe-bench/sites
+    depends_on:
+      - db
+      - redis-queue
+    deploy:
+      resources:
+        limits:
+          cpus: "0.5"
+          memory: 256M
+
+  queue-long:
+    image: ${IMAGE_TAG}
+    restart: unless-stopped
+    networks: [internal]
+    command: bench worker --queue long
+    volumes:
+      - sites:/home/frappe/frappe-bench/sites
+    depends_on:
+      - db
+      - redis-queue
+    deploy:
+      resources:
+        limits:
+          cpus: "0.5"
+          memory: 256M
+
+  scheduler:
+    image: ${IMAGE_TAG}
+    restart: unless-stopped
+    networks: [internal]
+    command: bench schedule
+    volumes:
+      - sites:/home/frappe/frappe-bench/sites
+    depends_on:
+      - db
+      - redis-queue
+    deploy:
+      resources:
+        limits:
+          cpus: "0.25"
+          memory: 128M
+
+  db:
+    image: mariadb:10.6
+    restart: unless-stopped
+    networks: [internal]
+    environment:
+      - MYSQL_ROOT_PASSWORD=${DB_ROOT_PASSWORD}
+      - MYSQL_DATABASE=${DB_NAME}
+      - MYSQL_USER=frappe
+      - MYSQL_PASSWORD=${DB_PASSWORD}
+    volumes:
+      - db-data:/var/lib/mysql
+    deploy:
+      resources:
+        limits:
+          cpus: "1.0"
+          memory: 512M
+
+  redis-cache:
+    image: redis:7-alpine
+    restart: unless-stopped
+    networks: [internal]
+    volumes:
+      - redis-cache-data:/data
+    deploy:
+      resources:
+        limits:
+          cpus: "0.25"
+          memory: 128M
+
+  redis-queue:
+    image: redis:7-alpine
+    restart: unless-stopped
+    networks: [internal]
+    volumes:
+      - redis-queue-data:/data
+    deploy:
+      resources:
+        limits:
+          cpus: "0.25"
+          memory: 128M
+
+volumes:
+  sites:
+    name: ${VOLUME_PREFIX}_sites
+  db-data:
+    name: ${VOLUME_PREFIX}_db
+  redis-cache-data:
+    name: ${VOLUME_PREFIX}_redis_cache
+  redis-queue-data:
+    name: ${VOLUME_PREFIX}_redis_queue
