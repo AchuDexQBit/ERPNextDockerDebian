@@ -40,11 +40,14 @@ The same client usually has **three branches** if you run all tiers; each branch
 
 4. **Prepare secrets (never commit)**
 
+   **`cp deploy/client.env.example deploy/client.env`** copies the tracked template to **`deploy/client.env`**, which Git ignores. You run it in a shell at the **repository root** (the folder that contains `deploy/`, `hetzner/`, etc.)—typically **on the server** where you run `docker compose`, or on your laptop if you build from there (then ensure `deploy/client.env` exists at that path before Compose).
+
    ```sh
+   cd /path/to/ERPNextDockerDebian   # repo root
    cp deploy/client.env.example deploy/client.env
    ```
 
-   Replace the placeholders in `deploy/client.env` for this client and environment (domains, passwords, token, repo paths, optional `BENCH_EXTRA_APPS`). Keys and sample values: [`deploy/client.env.example`](./client.env.example).
+   Edit `deploy/client.env` and replace placeholders (domains, passwords, token, repo paths, optional `BENCH_EXTRA_APPS`). Reference: [`deploy/client.env.example`](./client.env.example).
 
 5. **Deploy**
 
@@ -137,17 +140,19 @@ Commit and push the branch.
 
 ### 3. Prepare secrets and runtime settings (never commit)
 
-Copy the template and edit for that client **and** environment (e.g. different `RFP_DOMAIN_NAME` for `acme-stage` vs `acme-prod`):
+From the **repository root** on the host where Compose will run (or create the file there after editing elsewhere), copy the template to the real env file Git ignores:
 
 ```sh
+cd /path/to/this-repo
 cp deploy/client.env.example deploy/client.env
 ```
 
-Fill at least:
+Edit `deploy/client.env` for that client **and** environment (e.g. different values for `acme-stage` vs `acme-prod`). Fill at least:
 
 **Runtime (first boot / ongoing):**
 
-- `RFP_DOMAIN_NAME` — site name (e.g. `erp.client.com`)
+- `RFP_DOMAIN_NAME` — Frappe site id / folder (often `site1.local` to match nginx here)
+- `RFP_PUBLIC_URL` — optional full URL users use (e.g. `https://erp.client.com`); registers domain + `host_name` on first setup so emails/OAuth match the real host
 - `RFP_SITE_ADMIN_PASSWORD`
 - `RFP_DB_ROOT_PASSWORD` — MariaDB root password used when creating the site
 - `BENCH_EXTRA_APPS` — optional; space-separated app names to `bench install-app` **after** ERPNext (each name must match an app already present in the image from the build)
