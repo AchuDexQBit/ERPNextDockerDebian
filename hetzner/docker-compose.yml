@@ -1,7 +1,8 @@
-# Build from repository root:
-#   docker compose -f hetzner/docker-compose.yml --env-file deploy/client.env up -d --build
+# Preferred: pull CI image from GHCR — deploy/README.md §4 and deploy/compose.ghcr.yml
 #
-# Copy deploy/client.env.example to deploy/client.env and replace placeholders before first deploy.
+# Optional — build on the server (full repo clone on the right branch):
+#   docker compose -f hetzner/docker-compose.yml --env-file deploy/client.env up -d --build
+# Copy deploy/client.env.example to deploy/client.env first. Set DEPLOY_ENV_FILE in that file if you use a different name.
 
 services:
   erpnext:
