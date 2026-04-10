@@ -148,6 +148,7 @@ Edit `deploy/client.env` for that client **and** environment (e.g. different val
 
 **Runtime (first boot / ongoing):**
 
+- `GHCR_IMAGE` — exact tag CI pushed (`IMAGE_PREFIX` + branch + `:latest` in [`.github/workflows/build.yml`](../.github/workflows/build.yml))
 - `RFP_DOMAIN_NAME` — Frappe site id / folder (often `site1.local` to match nginx here)
 - `RFP_PUBLIC_URL` — optional full URL users use (e.g. `https://erp.client.com`); registers domain + `host_name` on first setup so emails/OAuth match the real host
 - `RFP_SITE_ADMIN_PASSWORD`
