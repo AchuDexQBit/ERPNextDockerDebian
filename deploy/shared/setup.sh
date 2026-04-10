@@ -26,6 +26,14 @@ _RFP_DB_HOST="${RFP_DB_HOST:-127.0.0.1}"
 _RFP_DB_PORT="${RFP_DB_PORT:-3306}"
 _RFP_MARIADB_SCOPE="${RFP_MARIADB_USER_HOST_LOGIN_SCOPE:-%}"
 
+_NEW_SITE_DB_ARGS=""
+if [ -n "${RFP_DB_NAME:-}" ]; then
+    _NEW_SITE_DB_ARGS="${_NEW_SITE_DB_ARGS} --db-name ${RFP_DB_NAME}"
+fi
+if [ -n "${RFP_DB_PASSWORD:-}" ]; then
+    _NEW_SITE_DB_ARGS="${_NEW_SITE_DB_ARGS} --db-password ${RFP_DB_PASSWORD}"
+fi
+
 echo "-> Create new site with ERPNext (DB ${_RFP_DB_HOST}:${_RFP_DB_PORT})"
 su frappe -c "cd /home/frappe/bench && bench new-site ${RFP_DOMAIN_NAME} \
     --admin-password ${RFP_SITE_ADMIN_PASSWORD} \
@@ -33,6 +41,7 @@ su frappe -c "cd /home/frappe/bench && bench new-site ${RFP_DOMAIN_NAME} \
     --db-port ${_RFP_DB_PORT} \
     --mariadb-user-host-login-scope ${_RFP_MARIADB_SCOPE} \
     --db-root-password ${RFP_DB_ROOT_PASSWORD} \
+    ${_NEW_SITE_DB_ARGS} \
     --install-app erpnext"
 
 if [ -n "${BENCH_EXTRA_APPS:-}" ]; then

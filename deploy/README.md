@@ -151,10 +151,11 @@ Edit `deploy/client.env` for that client **and** environment (e.g. different val
 - `RFP_DOMAIN_NAME` — Frappe site id / folder (often `site1.local` to match nginx here)
 - `RFP_PUBLIC_URL` — optional full URL users use (e.g. `https://erp.client.com`); registers domain + `host_name` on first setup so emails/OAuth match the real host
 - `RFP_SITE_ADMIN_PASSWORD`
-- `RFP_DB_HOST`, `RFP_DB_PORT` — MariaDB endpoint **as seen from inside the ERPNext container** (defaults `127.0.0.1` / `3306`). With [`compose.ghcr.yml`](./compose.ghcr.yml) there is no database in the stack, so set these to your real DB (another Compose service on a shared network, managed MariaDB, RDS, etc.).
+- `RFP_DB_HOST`, `RFP_DB_PORT` — MariaDB endpoint **as seen from inside the ERPNext container**. Default [`compose.ghcr.yml`](./compose.ghcr.yml) includes a `db` service, so **`db`** / **`3306`** usually match; use a real hostname if you use external MariaDB (and trim `db` from the compose file if unused).
 - `RFP_DB_ROOT_PASSWORD` — MariaDB root password on that server, used when creating the site
+- `RFP_DB_NAME`, `RFP_DB_PASSWORD` — optional; passed to `bench new-site` as `--db-name` / `--db-password` (omit both name and password to let bench derive the DB name from the site)
 - `RFP_MARIADB_USER_HOST_LOGIN_SCOPE` — optional; default `%` (replaces deprecated `--no-mariadb-socket` for remote TCP)
-- `RFP_REDIS_URL` or `RFP_REDIS_CACHE_URL` / `RFP_REDIS_QUEUE_URL` / `RFP_REDIS_SOCKETIO_URL` — written to `common_site_config.json` on first boot so workers and Socket.IO can reach Redis (omit only if Redis is truly local to defaults inside the image)
+- `RFP_REDIS_URL` or `RFP_REDIS_CACHE_URL` / `RFP_REDIS_QUEUE_URL` / `RFP_REDIS_SOCKETIO_URL` — written to `common_site_config.json` on first boot; default compose provides **`redis`**, so **`redis://redis:6379`** is typical (override for external Redis)
 - `BENCH_EXTRA_APPS` — optional; space-separated app names to `bench install-app` **after** ERPNext (each name must match an app already present in the image from the build)
 
 **Build-time (CI and optional on-VPS `docker compose --build`):**
@@ -195,7 +196,7 @@ Adjust paths if your compose file lives elsewhere; **`-p`** keeps the two stacks
 
 **What GHCR is:** only the **runtime image**. Fork / whitelist / custom apps are still **`bench get-app` from Git during CI** (`CUSTOMISATION_TOKEN` + `CUSTOM_*` in Actions), not on the server.
 
-**MariaDB and Redis:** [`compose.ghcr.yml`](./compose.ghcr.yml) starts **only** the ERPNext container. First boot runs `bench new-site`, which must connect to **MariaDB** and (for a healthy stack) **Redis**. Put MariaDB and Redis on the same Docker network as ERPNext (extend the compose file, or use external services) and set **`RFP_DB_HOST`** / **`RFP_DB_PORT`** and **`RFP_REDIS_URL`** (or the per-role Redis vars) accordingly. If the DB host is wrong, logs show `Can't connect to MySQL server on '127.0.0.1'`; if Redis is missing, workers and `bench-node-socketio` often crash-loop.
+**MariaDB and Redis:** [`compose.ghcr.yml`](./compose.ghcr.yml) starts **MariaDB**, **Redis**, and **ERPNext** on one network (`db` / `redis` hostnames). **`RFP_DB_ROOT_PASSWORD`** in your env file must match the MariaDB root in that stack. For **external** DB/Redis only, edit the compose file (remove `db`/`redis` and `depends_on` as needed) and set **`RFP_DB_HOST`** / **`RFP_REDIS_URL`** to real endpoints.
 
 ### 5. Optional — build on the VPS instead of GHCR
 
@@ -234,7 +235,7 @@ Pushing the branch triggers [`.github/workflows/build.yml`](../.github/workflows
 | `deploy/shared/*.sh`, `temp_*.conf`                          | Entrypoint, setup, nginx/supervisor templates           |
 | `deploy/client.env.example`                                  | Template with placeholders; copy to `deploy/client.env` |
 | `railway/Dockerfile`, `hetzner/Dockerfile`, `aws/Dockerfile` | Symlinks to `deploy/shared/Dockerfile`                  |
-| [`deploy/compose.ghcr.yml`](./compose.ghcr.yml)              | **Default** Hetzner/AWS deploy: pull from GHCR (§4)     |
+| [`deploy/compose.ghcr.yml`](./compose.ghcr.yml)              | **Default** Hetzner/AWS: GHCR image + MariaDB + Redis (`db` / `redis`) |
 | `hetzner/docker-compose.yml`, `aws/docker-compose.yml`       | Optional on-VPS `docker build` (§5)                     |
 
 ---
