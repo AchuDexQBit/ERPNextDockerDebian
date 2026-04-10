@@ -15,7 +15,7 @@ ENV \
     benchBranch=v5.x \
     frappeRepo="https://github.com/frappe/frappe" \
     erpnextRepo="https://github.com/frappe/erpnext" \
-    siteName=site1.local
+    siteName=dqb_demo_distributors.dexqbit.com
 
 COPY ./mariadb.cnf /home/$systemUser/mariadb.cnf
 COPY --chown=1000:1000 ./entrypoint.sh /usr/local/bin/entrypoint.sh
