@@ -172,7 +172,7 @@ See also [`deploy/client.env.example`](./client.env.example) for keys and placeh
 **Hetzner and AWS use the same flow:** pull the image CI published to GHCR; you do **not** need to clone this deploy repo on the VPS (optional: keep a shallow clone only if you want to run Compose from the repo tree).
 
 1. Wait for [`.github/workflows/build.yml`](../.github/workflows/build.yml) after pushing the client branch (`ghcr.io/<owner>/erpnext-<branch>:latest`).
-2. On the VPS: Docker + Compose; **`docker login ghcr.io`** (GitHub user + PAT with **`read:packages`**).
+2. On the VPS: Docker + Compose; **`echo YOUR_GHCR_PAT | docker login ghcr.io -u AchuDexQBit --password-stdin`** (GitHub user + PAT with **`read:packages`**).
 3. Put **`GHCR_IMAGE`** (that tag) plus **runtime** variables in **`deploy/client.env`** — see [`deploy/client.env.example`](./client.env.example). You do **not** need `GITHUB_PAT_TOKEN` on the server for pull-only deploy.
 4. From **repository root**:
 
@@ -182,7 +182,14 @@ See also [`deploy/client.env.example`](./client.env.example) for keys and placeh
 
    **Minimal host (no repo):** copy [`deploy/compose.ghcr.yml`](./compose.ghcr.yml) and your `client.env` into one directory, then `docker compose -f compose.yml --env-file client.env up -d`.
 
-**Several clients on one VPS:** separate directory (or env file) per client, unique **`GHCR_IMAGE`** (per branch), **`ERPNext_HTTP_PORT`**, and **`docker compose -p <project>`**.
+**Several clients on one VPS** (e.g. `deploy/compose.yml` + `secrets/env.abc` and `secrets/env.xyz`): in **each** env file set **`CLIENT_ENV_FILE`** to that file’s path relative to the compose file (e.g. `secrets/env.abc`), unique **`GHCR_IMAGE`**, **`ERPNext_HTTP_PORT`** (e.g. `8080` / `8081`), and **`RFP_*`** / DB values per client. Then:
+
+```sh
+docker compose -p client-abc -f deploy/compose.yml --env-file secrets/env.abc up -d
+docker compose -p client-xyz -f deploy/compose.yml --env-file secrets/env.xyz up -d
+```
+
+Adjust paths if your compose file lives elsewhere; **`-p`** keeps the two stacks isolated.
 
 **What GHCR is:** only the **runtime image**. Fork / whitelist / custom apps are still **`bench get-app` from Git during CI** (`CUSTOMISATION_TOKEN` + `CUSTOM_*` in Actions), not on the server.
 
@@ -217,14 +224,14 @@ Pushing the branch triggers [`.github/workflows/build.yml`](../.github/workflows
 
 ## Layout reference
 
-| Path                                                         | Role                                                       |
-| ------------------------------------------------------------ | ---------------------------------------------------------- |
-| `deploy/shared/Dockerfile`                                   | Canonical production image                                 |
-| `deploy/shared/*.sh`, `temp_*.conf`                          | Entrypoint, setup, nginx/supervisor templates              |
-| `deploy/client.env.example`                                  | Template with placeholders; copy to `deploy/client.env`    |
-| `railway/Dockerfile`, `hetzner/Dockerfile`, `aws/Dockerfile` | Symlinks to `deploy/shared/Dockerfile`                     |
-| [`deploy/compose.ghcr.yml`](./compose.ghcr.yml)              | **Default** Hetzner/AWS deploy: pull from GHCR (§4)        |
-| `hetzner/docker-compose.yml`, `aws/docker-compose.yml`       | Optional on-VPS `docker build` (§5)                        |
+| Path                                                         | Role                                                    |
+| ------------------------------------------------------------ | ------------------------------------------------------- |
+| `deploy/shared/Dockerfile`                                   | Canonical production image                              |
+| `deploy/shared/*.sh`, `temp_*.conf`                          | Entrypoint, setup, nginx/supervisor templates           |
+| `deploy/client.env.example`                                  | Template with placeholders; copy to `deploy/client.env` |
+| `railway/Dockerfile`, `hetzner/Dockerfile`, `aws/Dockerfile` | Symlinks to `deploy/shared/Dockerfile`                  |
+| [`deploy/compose.ghcr.yml`](./compose.ghcr.yml)              | **Default** Hetzner/AWS deploy: pull from GHCR (§4)     |
+| `hetzner/docker-compose.yml`, `aws/docker-compose.yml`       | Optional on-VPS `docker build` (§5)                     |
 
 ---
 
