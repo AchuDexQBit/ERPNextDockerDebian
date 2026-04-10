@@ -4,7 +4,7 @@ set -e
 echo "-> Check if site exists"
 if [ ! -f "/home/frappe/bench/sites/${RFP_DOMAIN_NAME}/site_config.json" ]; then
     echo "-> Site not found, running setup..."
-    bash /home/frappe/bench/railway-setup.sh
+    bash /home/frappe/bench/setup.sh
 fi
 
 echo "-> Clearing cache"
