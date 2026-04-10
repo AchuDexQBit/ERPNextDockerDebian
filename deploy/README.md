@@ -152,7 +152,10 @@ Edit `deploy/client.env` for that client **and** environment (e.g. different val
 - `RFP_DOMAIN_NAME` — Frappe site id / folder (often `site1.local` to match nginx here)
 - `RFP_PUBLIC_URL` — optional full URL users use (e.g. `https://erp.client.com`); registers domain + `host_name` on first setup so emails/OAuth match the real host
 - `RFP_SITE_ADMIN_PASSWORD`
-- `RFP_DB_ROOT_PASSWORD` — MariaDB root password used when creating the site
+- `RFP_DB_HOST`, `RFP_DB_PORT` — MariaDB endpoint **as seen from inside the ERPNext container** (defaults `127.0.0.1` / `3306`). With [`compose.ghcr.yml`](./compose.ghcr.yml) there is no database in the stack, so set these to your real DB (another Compose service on a shared network, managed MariaDB, RDS, etc.).
+- `RFP_DB_ROOT_PASSWORD` — MariaDB root password on that server, used when creating the site
+- `RFP_MARIADB_USER_HOST_LOGIN_SCOPE` — optional; default `%` (replaces deprecated `--no-mariadb-socket` for remote TCP)
+- `RFP_REDIS_URL` or `RFP_REDIS_CACHE_URL` / `RFP_REDIS_QUEUE_URL` / `RFP_REDIS_SOCKETIO_URL` — written to `common_site_config.json` on first boot so workers and Socket.IO can reach Redis (omit only if Redis is truly local to defaults inside the image)
 - `BENCH_EXTRA_APPS` — optional; space-separated app names to `bench install-app` **after** ERPNext (each name must match an app already present in the image from the build)
 
 **Build-time (CI and optional on-VPS `docker compose --build`):**
@@ -192,6 +195,8 @@ docker compose -p client-xyz -f deploy/compose.yml --env-file secrets/env.xyz up
 Adjust paths if your compose file lives elsewhere; **`-p`** keeps the two stacks isolated.
 
 **What GHCR is:** only the **runtime image**. Fork / whitelist / custom apps are still **`bench get-app` from Git during CI** (`CUSTOMISATION_TOKEN` + `CUSTOM_*` in Actions), not on the server.
+
+**MariaDB and Redis:** [`compose.ghcr.yml`](./compose.ghcr.yml) starts **only** the ERPNext container. First boot runs `bench new-site`, which must connect to **MariaDB** and (for a healthy stack) **Redis**. Put MariaDB and Redis on the same Docker network as ERPNext (extend the compose file, or use external services) and set **`RFP_DB_HOST`** / **`RFP_DB_PORT`** and **`RFP_REDIS_URL`** (or the per-role Redis vars) accordingly. If the DB host is wrong, logs show `Can't connect to MySQL server on '127.0.0.1'`; if Redis is missing, workers and `bench-node-socketio` often crash-loop.
 
 ### 5. Optional — build on the VPS instead of GHCR
 

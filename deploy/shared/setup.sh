@@ -1,14 +1,37 @@
 #!/bin/bash
 set -e
 
-echo "-> Create empty common site config"
-echo "{}" > /home/frappe/bench/sites/common_site_config.json
+echo "-> Write common site config (Redis URLs if set)"
+python3 <<'PY'
+import json, os
+
+path = "/home/frappe/bench/sites/common_site_config.json"
+url = (os.environ.get("RFP_REDIS_URL") or "").strip()
+cache = (os.environ.get("RFP_REDIS_CACHE_URL") or "").strip() or url
+queue = (os.environ.get("RFP_REDIS_QUEUE_URL") or "").strip() or url
+socketio = (os.environ.get("RFP_REDIS_SOCKETIO_URL") or "").strip() or url
+d = {}
+if cache:
+    d["redis_cache"] = cache
+if queue:
+    d["redis_queue"] = queue
+if socketio:
+    d["redis_socketio"] = socketio
+with open(path, "w") as f:
+    json.dump(d, f)
+PY
 chown frappe:frappe /home/frappe/bench/sites/common_site_config.json
 
-echo "-> Create new site with ERPNext"
+_RFP_DB_HOST="${RFP_DB_HOST:-127.0.0.1}"
+_RFP_DB_PORT="${RFP_DB_PORT:-3306}"
+_RFP_MARIADB_SCOPE="${RFP_MARIADB_USER_HOST_LOGIN_SCOPE:-%}"
+
+echo "-> Create new site with ERPNext (DB ${_RFP_DB_HOST}:${_RFP_DB_PORT})"
 su frappe -c "cd /home/frappe/bench && bench new-site ${RFP_DOMAIN_NAME} \
     --admin-password ${RFP_SITE_ADMIN_PASSWORD} \
-    --no-mariadb-socket \
+    --db-host ${_RFP_DB_HOST} \
+    --db-port ${_RFP_DB_PORT} \
+    --mariadb-user-host-login-scope ${_RFP_MARIADB_SCOPE} \
     --db-root-password ${RFP_DB_ROOT_PASSWORD} \
     --install-app erpnext"
 
