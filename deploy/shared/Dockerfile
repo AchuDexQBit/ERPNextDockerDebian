@@ -24,10 +24,12 @@ RUN echo "-> Start builder" \
     && sed -i 's/socket\.AF_INET, socket\.SOCK_STREAM/socket.AF_INET6, socket.SOCK_STREAM/g' /home/frappe/bench/apps/frappe/frappe/utils/connections.py \
     && bench remove-app erpnext --no-backup || true \
     && bench remove-app payments --no-backup || true \
+    && bench remove-app hrms --no-backup || true \
     && rm -rf /home/$systemUser/$benchFolderName/apps/erpnext \
     && rm -rf /home/$systemUser/$benchFolderName/apps/payments \
     && rm -rf /home/$systemUser/$benchFolderName/apps/hrms \
     && bench get-app --branch version-15 https://github.com/frappe/payments \
+    && bench get-app --branch version-15 https://github.com/frappe/hrms \
     && bench get-app --branch ${CUSTOM_ERPNEXT_BRANCH} https://${GITHUB_PAT_TOKEN}@github.com/${CUSTOM_ERPNEXT_GITHUB_PATH} \
     && if [ -n "${CUSTOM_WHITELIST_GITHUB_PATH}" ]; then \
          bench get-app --branch ${CUSTOM_WHITELIST_BRANCH} https://${GITHUB_PAT_TOKEN}@github.com/${CUSTOM_WHITELIST_GITHUB_PATH}; \
