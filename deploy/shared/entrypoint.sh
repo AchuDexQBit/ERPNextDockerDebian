@@ -10,7 +10,8 @@ su frappe -c "ln -sf /home/frappe/bench/built_sites/apps.json /home/frappe/bench
 su frappe -c "ln -sf /home/frappe/bench/built_sites/apps.txt /home/frappe/bench/sites/apps.txt"
 
 echo "-> Linking site assets"
-su frappe -c "mkdir -p /home/frappe/bench/sites/site1.local"
-su frappe -c "ln -sf /home/frappe/bench/sites/assets /home/frappe/bench/sites/site1.local/assets" || true
+_site="${RFP_DOMAIN_NAME:-site1.local}"
+su frappe -c "mkdir -p /home/frappe/bench/sites/${_site}"
+su frappe -c "ln -sf /home/frappe/bench/sites/assets /home/frappe/bench/sites/${_site}/assets" || true
 
 exec "$@"
