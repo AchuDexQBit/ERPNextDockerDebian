@@ -1,5 +1,6 @@
-# Same image as Railway/Hetzner; use on EC2, ECS with Docker, or local testing before ECR push.
-# Build from repository root (copy deploy/client.env.example to deploy/client.env and replace placeholders):
+# Preferred on AWS: pull CI image from GHCR — deploy/README.md §4 and deploy/compose.ghcr.yml
+#
+# Optional — build on EC2 (requires full repo clone on branch):
 #   docker compose -f aws/docker-compose.yml --env-file deploy/client.env up -d --build
 #
 # Push to ECR (example):
