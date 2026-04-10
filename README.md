@@ -50,6 +50,8 @@ bench start
 
 For best practices in a production environment, [Official Frappe Docker](https://github.com/frappe/frappe_docker).
 
+This repository also documents a **multi-client** flow (separate Git branches, Hetzner/AWS/Railway, GHCR builds). Step-by-step instructions: [`deploy/README.md`](./deploy/README.md).
+
 ## User & Password
 
 ```

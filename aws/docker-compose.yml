@@ -1,0 +1,28 @@
+# Same image as Railway/Hetzner; use on EC2, ECS with Docker, or local testing before ECR push.
+# Build from repository root (copy deploy/client.env.example to deploy/client.env and replace placeholders):
+#   docker compose -f aws/docker-compose.yml --env-file deploy/client.env up -d --build
+#
+# Push to ECR (example):
+#   aws ecr get-login-password --region $AWS_REGION | docker login --username AWS --password-stdin $ECR_REGISTRY
+#   docker tag erpnext-aws:local $ECR_REGISTRY/erpnext-aws:latest
+#   docker push $ECR_REGISTRY/erpnext-aws:latest
+
+services:
+  erpnext:
+    build:
+      context: ..
+      dockerfile: deploy/shared/Dockerfile
+      args:
+        GITHUB_PAT_TOKEN: ${GITHUB_PAT_TOKEN}
+        CUSTOM_ERPNEXT_BRANCH: ${CUSTOM_ERPNEXT_BRANCH:-prod}
+        CUSTOM_ERPNEXT_GITHUB_PATH: ${CUSTOM_ERPNEXT_GITHUB_PATH:-AchuDexQBit/erpnext}
+        CUSTOM_WHITELIST_GITHUB_PATH: ${CUSTOM_WHITELIST_GITHUB_PATH:-}
+        CUSTOM_WHITELIST_BRANCH: ${CUSTOM_WHITELIST_BRANCH:-prod}
+        DEPLOY_TARGET: aws
+    image: ${ERPNext_IMAGE_NAME:-erpnext-aws}:local
+    ports:
+      - "${ERPNext_HTTP_PORT:-80}:80"
+    env_file:
+      - ../deploy/client.env
+    environment:
+      BENCH_EXTRA_APPS: ${BENCH_EXTRA_APPS:-}

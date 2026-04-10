@@ -1,0 +1,24 @@
+# Build from repository root:
+#   docker compose -f hetzner/docker-compose.yml --env-file deploy/client.env up -d --build
+#
+# Copy deploy/client.env.example to deploy/client.env and replace placeholders before first deploy.
+
+services:
+  erpnext:
+    build:
+      context: ..
+      dockerfile: deploy/shared/Dockerfile
+      args:
+        GITHUB_PAT_TOKEN: ${GITHUB_PAT_TOKEN}
+        CUSTOM_ERPNEXT_BRANCH: ${CUSTOM_ERPNEXT_BRANCH:-prod}
+        CUSTOM_ERPNEXT_GITHUB_PATH: ${CUSTOM_ERPNEXT_GITHUB_PATH:-AchuDexQBit/erpnext}
+        CUSTOM_WHITELIST_GITHUB_PATH: ${CUSTOM_WHITELIST_GITHUB_PATH:-}
+        CUSTOM_WHITELIST_BRANCH: ${CUSTOM_WHITELIST_BRANCH:-prod}
+        DEPLOY_TARGET: hetzner
+    image: ${ERPNext_IMAGE_NAME:-erpnext-hetzner}:local
+    ports:
+      - "${ERPNext_HTTP_PORT:-80}:80"
+    env_file:
+      - ../deploy/client.env
+    environment:
+      BENCH_EXTRA_APPS: ${BENCH_EXTRA_APPS:-}

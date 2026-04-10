@@ -12,8 +12,12 @@ su frappe -c "cd /home/frappe/bench && bench new-site ${RFP_DOMAIN_NAME} \
     --db-root-password ${RFP_DB_ROOT_PASSWORD} \
     --install-app erpnext"
 
-echo "-> Install custom app"
-su frappe -c "cd /home/frappe/bench && bench --site ${RFP_DOMAIN_NAME} install-app erpnext_wl_dqb_demo"
+if [ -n "${BENCH_EXTRA_APPS:-}" ]; then
+    echo "-> Installing extra bench apps: ${BENCH_EXTRA_APPS}"
+    for app in ${BENCH_EXTRA_APPS}; do
+        su frappe -c "cd /home/frappe/bench && bench --site ${RFP_DOMAIN_NAME} install-app ${app}"
+    done
+fi
 
 echo "-> Set default site"
 su frappe -c "cd /home/frappe/bench && bench use ${RFP_DOMAIN_NAME}"

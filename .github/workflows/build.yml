@@ -37,7 +37,9 @@ jobs:
         uses: docker/build-push-action@v5
         with:
           context: .
+          file: deploy/shared/Dockerfile
           push: true
           tags: ${{ steps.meta.outputs.image_tag }}
           build-args: |
-            CUSTOMISATION_TOKEN=${{ secrets.CUSTOMISATION_TOKEN }}
+            GITHUB_PAT_TOKEN=${{ secrets.CUSTOMISATION_TOKEN }}
+            DEPLOY_TARGET=ci
