@@ -3,4 +3,4 @@
 /docs/_site/
 /.vscode
 !/.devcontainer*
-/deploy/client.env
+/deploy/secrets
