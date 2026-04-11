@@ -16,8 +16,9 @@ WORKDIR /home/$systemUser/$benchFolderName
 ARG GITHUB_PAT_TOKEN
 ARG CUSTOM_ERPNEXT_BRANCH=prod
 ARG CUSTOM_ERPNEXT_GITHUB_PATH=AchuDexQBit/erpnext
-ARG CUSTOM_WHITELIST_GITHUB_PATH=
-ARG CUSTOM_WHITELIST_BRANCH=prod
+# Private app (bench get-app). Empty on template branches; set per client branch.
+ARG CUSTOM_WHITELIST_GITHUB_PATH=AchuDexQBit/erpnext_app_dqb_distributors
+ARG CUSTOM_WHITELIST_BRANCH=dqb_distributors-prod
 
 RUN echo "-> Start builder" \
     && rm -rf /home/$systemUser/$benchFolderName/sites/site1.local \
@@ -54,9 +55,9 @@ WORKDIR /home/$systemUser/$benchFolderName
 
 ARG DEBIAN_FRONTEND=noninteractive
 ARG DEPLOY_TARGET=generic
-# Space-separated app names for `bench install-app` on first boot (must exist under bench/apps from the builder). Empty = ERPNext only.
-# Set per client branch or pass build-arg / env_file. Server env_file overrides ENV when set.
-ARG BENCH_EXTRA_APPS=""
+# Space-separated names for `bench install-app` on first boot (must exist under bench/apps). ERPNext is installed by new-site.
+# Per client branch; server env_file overrides ENV if set.
+ARG BENCH_EXTRA_APPS="payments hrms erpnext_app_dqb_distributors"
 ENV BENCH_EXTRA_APPS="${BENCH_EXTRA_APPS}"
 
 LABEL org.opencontainers.image.source="https://github.com/frappe/erpnext"
