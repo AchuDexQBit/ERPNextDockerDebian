@@ -20,7 +20,7 @@ ARG CUSTOM_ERPNEXT_BRANCH=prod
 ARG CUSTOM_ERPNEXT_GITHUB_PATH=AchuDexQBit/erpnext
 # Private app (bench get-app). Empty on template branches; set per client branch.
 ARG CUSTOM_WHITELIST_GITHUB_PATH=AchuDexQBit/erpnext_app_dqb_distributors
-ARG CUSTOM_WHITELIST_BRANCH=dqb_distributors-prod
+ARG CUSTOM_WHITELIST_BRANCH=prod
 
 RUN echo "-> Builder cleanup" \
     && if [ -z "${GITHUB_PAT_TOKEN}" ]; then echo "ERROR: build-arg GITHUB_PAT_TOKEN is empty (set GitHub secret CUSTOMISATION_TOKEN for CI)"; exit 1; fi \
