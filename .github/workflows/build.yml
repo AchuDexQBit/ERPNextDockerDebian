@@ -26,6 +26,13 @@ jobs:
           IMAGE_TAG="${{ env.IMAGE_PREFIX }}-${GITHUB_REF_NAME}:latest"
           echo "image_tag=${IMAGE_TAG}" >> $GITHUB_OUTPUT
 
+      - name: Require PAT for private bench get-app
+        run: |
+          if [ -z "${{ secrets.CUSTOMISATION_TOKEN }}" ]; then
+            echo "::error::Repository secret CUSTOMISATION_TOKEN is not set. Add a GitHub PAT with repo scope to clone private forks (Settings → Secrets and variables → Actions)."
+            exit 1
+          fi
+
       - name: Log in to GHCR
         uses: docker/login-action@v3
         with:
