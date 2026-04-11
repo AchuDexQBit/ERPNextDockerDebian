@@ -47,6 +47,46 @@ _bench_new_site() {
         --install-app erpnext"
 }
 
+# Frappe v15 default DB name is "_" + sha1(realpath(sites/<site>))[:16]. bench drop-site needs a site folder;
+# orphan DB-only state must be cleared with root SQL.
+_orphan_drop_mariadb() {
+    su frappe -s /bin/bash <<'EOSU'
+set -e
+cd /home/frappe/bench
+exec ./env/bin/python3 <<'PY'
+import hashlib
+import os
+import re
+
+import pymysql
+
+site = os.environ["RFP_DOMAIN_NAME"]
+root_pw = os.environ["RFP_DB_ROOT_PASSWORD"]
+host = os.environ.get("RFP_DB_HOST", "127.0.0.1")
+port = int(os.environ.get("RFP_DB_PORT", "3306"))
+explicit = (os.environ.get("RFP_DB_NAME") or "").strip()
+
+if explicit:
+    db_name = explicit
+else:
+    site_path = os.path.realpath(os.path.join("/home/frappe/bench/sites", site))
+    db_name = "_" + hashlib.sha1(site_path.encode(), usedforsecurity=False).hexdigest()[:16]
+
+if not re.match(r"^[_0-9a-zA-Z]+$", db_name):
+    raise SystemExit(f"refusing unsafe RFP_DB_NAME / derived id: {db_name!r}")
+
+conn = pymysql.connect(host=host, port=port, user="root", password=root_pw)
+conn.autocommit(True)
+cur = conn.cursor()
+cur.execute(f"DROP DATABASE IF EXISTS `{db_name}`")
+for h in ("%", "localhost"):
+    cur.execute(f"DROP USER IF EXISTS '{db_name}'@'{h}'")
+conn.close()
+print(f"-> Dropped MariaDB database + user {db_name} (orphan recovery)")
+PY
+EOSU
+}
+
 set +e
 _new_site_log=$(_bench_new_site 2>&1)
 _new_site_rc=$?
@@ -57,9 +97,23 @@ if [ "${_new_site_rc}" -ne 0 ]; then
     if printf '%s' "${_new_site_log}" | grep -qi 'already exists'; then
         echo "-> new-site failed: site or database already exists but site files are missing (common if sites/ was not on a volume)."
         if [ "${RFP_RECOVER_ORPHAN_SITE:-}" = "true" ]; then
-            echo "-> RFP_RECOVER_ORPHAN_SITE=true: bench drop-site (DB + folder) then retry new-site"
-            su frappe -c "cd /home/frappe/bench && bench drop-site ${RFP_DOMAIN_NAME} --force --no-backup --db-root-password ${RFP_DB_ROOT_PASSWORD}" || true
-            _bench_new_site
+            echo "-> RFP_RECOVER_ORPHAN_SITE=true: remove orphan DB then retry new-site"
+            _site_cfg="/home/frappe/bench/sites/${RFP_DOMAIN_NAME}/site_config.json"
+            if [ -f "${_site_cfg}" ]; then
+                su frappe -c "cd /home/frappe/bench && bench drop-site ${RFP_DOMAIN_NAME} --force --no-backup --db-root-password ${RFP_DB_ROOT_PASSWORD}" || _orphan_drop_mariadb
+            else
+                echo "-> No site folder (bench drop-site cannot run); dropping DB as Frappe v15 would name it"
+                _orphan_drop_mariadb
+            fi
+            set +e
+            _retry_log=$(_bench_new_site 2>&1)
+            _retry_rc=$?
+            set -e
+            printf '%s\n' "${_retry_log}"
+            if [ "${_retry_rc}" -ne 0 ]; then
+                echo "ERROR: new-site failed after orphan recovery (rc=${_retry_rc})."
+                exit "${_retry_rc}"
+            fi
         else
             echo "ERROR: Fix once: set RFP_RECOVER_ORPHAN_SITE=true in env and recreate the container, or run bench drop-site with --db-root-password, then remove that var. See deploy/README.md."
             exit 1
