@@ -35,14 +35,39 @@ if [ -n "${RFP_DB_PASSWORD:-}" ]; then
 fi
 
 echo "-> Create new site with ERPNext (DB ${_RFP_DB_HOST}:${_RFP_DB_PORT})"
-su frappe -c "cd /home/frappe/bench && bench new-site ${RFP_DOMAIN_NAME} \
-    --admin-password ${RFP_SITE_ADMIN_PASSWORD} \
-    --db-host ${_RFP_DB_HOST} \
-    --db-port ${_RFP_DB_PORT} \
-    --mariadb-user-host-login-scope ${_RFP_MARIADB_SCOPE} \
-    --db-root-password ${RFP_DB_ROOT_PASSWORD} \
-    ${_NEW_SITE_DB_ARGS} \
-    --install-app erpnext"
+
+_bench_new_site() {
+    su frappe -c "cd /home/frappe/bench && bench new-site ${RFP_DOMAIN_NAME} \
+        --admin-password ${RFP_SITE_ADMIN_PASSWORD} \
+        --db-host ${_RFP_DB_HOST} \
+        --db-port ${_RFP_DB_PORT} \
+        --mariadb-user-host-login-scope ${_RFP_MARIADB_SCOPE} \
+        --db-root-password ${RFP_DB_ROOT_PASSWORD} \
+        ${_NEW_SITE_DB_ARGS} \
+        --install-app erpnext"
+}
+
+set +e
+_new_site_log=$(_bench_new_site 2>&1)
+_new_site_rc=$?
+set -e
+printf '%s\n' "${_new_site_log}"
+
+if [ "${_new_site_rc}" -ne 0 ]; then
+    if printf '%s' "${_new_site_log}" | grep -qi 'already exists'; then
+        echo "-> new-site failed: site or database already exists but site files are missing (common if sites/ was not on a volume)."
+        if [ "${RFP_RECOVER_ORPHAN_SITE:-}" = "true" ]; then
+            echo "-> RFP_RECOVER_ORPHAN_SITE=true: bench drop-site (DB + folder) then retry new-site"
+            su frappe -c "cd /home/frappe/bench && bench drop-site ${RFP_DOMAIN_NAME} --force --no-backup --db-root-password ${RFP_DB_ROOT_PASSWORD}" || true
+            _bench_new_site
+        else
+            echo "ERROR: Fix once: set RFP_RECOVER_ORPHAN_SITE=true in env and recreate the container, or run bench drop-site with --db-root-password, then remove that var. See deploy/README.md."
+            exit 1
+        fi
+    else
+        exit "${_new_site_rc}"
+    fi
+fi
 
 if [ -n "${BENCH_EXTRA_APPS:-}" ]; then
     echo "-> Installing extra bench apps: ${BENCH_EXTRA_APPS}"

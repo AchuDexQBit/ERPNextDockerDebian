@@ -2,6 +2,9 @@
 # Set RFP_DB_ROOT_PASSWORD in your env file (same value MariaDB uses here).
 # Typical env: RFP_DB_HOST=db, RFP_DB_PORT=3306, RFP_REDIS_URL=redis://redis:6379
 #
+# frappe_sites persists /home/frappe/bench/sites (site_config, uploads). Without it, DB data survives
+# container restarts but files do not → "Site … already exists" + restart loop.
+#
 # From repo root:
 #   docker login ghcr.io -u USER -p <PAT_with_read:packages>
 #   docker compose -f deploy/compose.ghcr.yml --env-file deploy/client.env up -d
@@ -51,6 +54,9 @@ services:
       - ${CLIENT_ENV_FILE:-./client.env}
     environment:
       BENCH_EXTRA_APPS: ${BENCH_EXTRA_APPS:-}
+    volumes:
+      - frappe_sites:/home/frappe/bench/sites
 
 volumes:
   mariadb_data:
+  frappe_sites:
