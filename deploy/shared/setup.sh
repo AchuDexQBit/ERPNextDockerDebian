@@ -17,6 +17,8 @@ if queue:
     d["redis_queue"] = queue
 if socketio:
     d["redis_socketio"] = socketio
+d["socketio_port"] = 9000
+d["user_types"] = {"Employee Self Service": 500}
 with open(path, "w") as f:
     json.dump(d, f)
 PY
@@ -57,8 +59,6 @@ _bench_new_site() {
         --install-app erpnext"
 }
 
-# Frappe v15 default DB name is "_" + sha1(realpath(sites/<site>))[:16]. bench drop-site needs a site folder;
-# orphan DB-only state must be cleared with root SQL.
 _orphan_drop_mariadb() {
     su frappe -s /bin/bash <<'EOSU'
 set -e
@@ -137,7 +137,8 @@ if [ "${_new_site_rc}" -ne 0 ]; then
                 exit "${_retry_rc}"
             fi
         else
-            echo "ERROR: Rebuild/pull image with fixed entrypoint (no mkdir sites/<site>), or set RFP_RECOVER_ORPHAN_SITE=true once if MariaDB still has a leftover DB. See deploy/README.md."
+            echo "-> new-site failed: site or database already exists but site files are missing (common if sites/ was not on a volume)."
+            echo "ERROR: Fix once: set RFP_RECOVER_ORPHAN_SITE=true in env and recreate the container, or run bench drop-site with --db-root-password, then remove that var. See deploy/README.md."
             exit 1
         fi
     else
