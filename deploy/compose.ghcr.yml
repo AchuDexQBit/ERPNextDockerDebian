@@ -52,8 +52,6 @@ services:
       - "${ERPNext_HTTP_PORT:-80}:80"
     env_file:
       - ${CLIENT_ENV_FILE:-./client.env}
-    environment:
-      BENCH_EXTRA_APPS: ${BENCH_EXTRA_APPS:-}
     volumes:
       - frappe_sites:/home/frappe/bench/sites
 

@@ -47,7 +47,7 @@ The same client usually has **three branches** if you run all tiers; each branch
    cp deploy/client.env.example deploy/client.env
    ```
 
-   Edit `deploy/client.env`: for **GHCR deploy**, set **`GHCR_IMAGE=ghcr.io/<owner>/erpnext-<branch>:latest`** (same branch CI built) plus runtime fields (`RFP_*`, passwords, `BENCH_EXTRA_APPS`). Build-arg fields (`GITHUB_PAT_TOKEN`, `CUSTOM_*`) matter in **CI**, not on the VPS when you only pull. Reference: [`deploy/client.env.example`](./client.env.example).
+   Edit `deploy/client.env`: for **GHCR deploy**, set **`GHCR_IMAGE=ghcr.io/<owner>/erpnext-<branch>:latest`** (same branch CI built) plus runtime fields (`RFP_*`, passwords). **`BENCH_EXTRA_APPS`** is optional if your branch’s Dockerfile bakes the list. Build-arg fields (`GITHUB_PAT_TOKEN`, `CUSTOM_*`) matter in **CI**, not on the VPS when you only pull. Reference: [`deploy/client.env.example`](./client.env.example).
 
 5. **Deploy (Hetzner or AWS — GHCR)**
    - Install Docker + Compose on the VPS; **`docker login ghcr.io`** (PAT with **`read:packages`**).
@@ -63,6 +63,23 @@ The same client usually has **three branches** if you run all tiers; each branch
 
 **One-line summary:** branch → push (CI → GHCR) → `deploy/client.env` + **`GHCR_IMAGE`** → `docker compose -f deploy/compose.ghcr.yml … up -d` on Hetzner or AWS (or Railway).
 
+### Minimal VPS (only compose + secrets)
+
+On the server you can keep **two files** in one directory (e.g. `~/deploy/`): a copy of [`compose.ghcr.yml`](./compose.ghcr.yml) as `compose.yml`, and your env file (e.g. `secrets/dqb_distributors.env`) with **`CLIENT_ENV_FILE`** pointing at that path.
+
+- **Once:** `echo <PAT> | docker login ghcr.io -u <github_user> --password-stdin` (PAT needs **`read:packages`**).
+- **Apps:** `bench get-app` runs in **CI** for ERPNext (fork), optional whitelist, and any extra lines you add to the Dockerfile. **`BENCH_EXTRA_APPS`** defaults to **empty** (ERPNext only on the site); set **`ARG BENCH_EXTRA_APPS="app1 app2"`** on a branch or in the env file so first boot runs `bench install-app` for each (names must match folders under `bench/apps/`).
+- **Updates:** `docker compose -p … pull && docker compose -p … up -d` pulls **`latest`** because of **`pull_policy: always`** on ERPNext.
+- **`docker compose … down -v` deletes all volumes** (MariaDB + `frappe_sites`). Use that only for a **full reset**; for normal redeploys omit **`-v`**.
+
+Example (adjust project name and paths):
+
+```sh
+docker compose -p dqb_distributors -f compose.yml --env-file secrets/dqb_distributors.env pull
+docker compose -p dqb_distributors -f compose.yml --env-file secrets/dqb_distributors.env up -d
+docker compose -p dqb_distributors -f compose.yml --env-file secrets/dqb_distributors.env logs -f erpnext
+```
+
 ---
 
 ## Concepts
@@ -73,7 +90,7 @@ The same client usually has **three branches** if you run all tiers; each branch
 | Client + env **code/config** in Git          | Branch `<client_name>-<env>` (optional edits to Dockerfile, compose files, defaults)                                |
 | Client-specific **secrets**                  | `deploy/client.env` on the server (gitignored), or GitHub Actions secrets / Environments                            |
 | Apps **cloned into the image**               | `bench get-app` in the Dockerfile **builder** stage (`GITHUB_PAT_TOKEN`, `CUSTOM_ERPNEXT_*`, `CUSTOM_WHITELIST_*`)  |
-| Apps **installed on the site** at first boot | Runtime env `BENCH_EXTRA_APPS` (space-separated **app names** that already exist under `bench/apps` from the build) |
+| Apps **installed on the site** at first boot | Optional **`BENCH_EXTRA_APPS`** (Dockerfile `ARG`/`ENV` or env file); default **none** besides ERPNext from `bench new-site` |
 
 ### Example: Payments + HRMS + one private (whitelist) app
 
@@ -158,7 +175,7 @@ Edit `deploy/client.env` for that client **and** environment (e.g. different val
 - `RFP_RECOVER_ORPHAN_SITE` — set to **`true`** only once if **`bench new-site`** fails with **already exists** while **`site_config.json`** is missing (orphaned DB on MariaDB). Recovery uses **`bench drop-site`** when the site folder exists; otherwise it **`DROP DATABASE`** / **`DROP USER`** using the same DB name Frappe v15 derives (`_` + SHA1 of `realpath(sites/<RFP_DOMAIN_NAME>)`), or **`RFP_DB_NAME`** if you set that for `new-site`. Remove after a successful boot.
 - `RFP_MARIADB_USER_HOST_LOGIN_SCOPE` — optional; default `%` (replaces deprecated `--no-mariadb-socket` for remote TCP)
 - `RFP_REDIS_URL` or `RFP_REDIS_CACHE_URL` / `RFP_REDIS_QUEUE_URL` / `RFP_REDIS_SOCKETIO_URL` — written to `common_site_config.json` on first boot; default compose provides **`redis`**, so **`redis://redis:6379`** is typical (override for external Redis)
-- `BENCH_EXTRA_APPS` — optional; space-separated app names to `bench install-app` **after** ERPNext (each name must match an app already present in the image from the build)
+- `BENCH_EXTRA_APPS` — optional; default **empty** in the image. Set in the Dockerfile **`ARG`** on a branch and/or in this file to install extra apps after ERPNext
 
 **Build-time (CI and optional on-VPS `docker compose --build`):**
 

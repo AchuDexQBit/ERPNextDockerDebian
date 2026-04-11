@@ -54,6 +54,10 @@ WORKDIR /home/$systemUser/$benchFolderName
 
 ARG DEBIAN_FRONTEND=noninteractive
 ARG DEPLOY_TARGET=generic
+# Space-separated app names for `bench install-app` on first boot (must exist under bench/apps from the builder). Empty = ERPNext only.
+# Set per client branch or pass build-arg / env_file. Server env_file overrides ENV when set.
+ARG BENCH_EXTRA_APPS=""
+ENV BENCH_EXTRA_APPS="${BENCH_EXTRA_APPS}"
 
 LABEL org.opencontainers.image.source="https://github.com/frappe/erpnext"
 LABEL deploy.target="${DEPLOY_TARGET}"
