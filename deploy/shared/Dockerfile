@@ -10,8 +10,9 @@
 # ------------------------------------------
 FROM pipech/erpnext-docker-debian:version-15-latest AS builder
 
-USER $systemUser
-WORKDIR /home/$systemUser/$benchFolderName
+# Base image may not expose $systemUser to every instruction; pin paths for reliable builds.
+USER frappe
+WORKDIR /home/frappe/bench
 
 ARG GITHUB_PAT_TOKEN
 ARG CUSTOM_ERPNEXT_BRANCH=prod
@@ -20,21 +21,26 @@ ARG CUSTOM_ERPNEXT_GITHUB_PATH=AchuDexQBit/erpnext
 ARG CUSTOM_WHITELIST_GITHUB_PATH=AchuDexQBit/erpnext_app_dqb_distributors
 ARG CUSTOM_WHITELIST_BRANCH=dqb_distributors-prod
 
-RUN echo "-> Start builder" \
+RUN echo "-> Builder cleanup" \
     && if [ -z "${GITHUB_PAT_TOKEN}" ]; then echo "ERROR: build-arg GITHUB_PAT_TOKEN is empty (set GitHub secret CUSTOMISATION_TOKEN for CI)"; exit 1; fi \
-    && rm -rf /home/$systemUser/$benchFolderName/sites/site1.local \
-    && sed -i 's/socket\.AF_INET, socket\.SOCK_STREAM/socket.AF_INET6, socket.SOCK_STREAM/g' /home/frappe/bench/apps/frappe/frappe/utils/connections.py \
+    && rm -rf /home/frappe/bench/sites/site1.local \
+    && _cf=/home/frappe/bench/apps/frappe/frappe/utils/connections.py \
+    && if [ -f "${_cf}" ]; then sed -i 's/socket\.AF_INET, socket\.SOCK_STREAM/socket.AF_INET6, socket.SOCK_STREAM/g' "${_cf}"; fi \
     && bench remove-app erpnext --no-backup || true \
     && bench remove-app payments --no-backup || true \
     && bench remove-app hrms --no-backup || true \
-    && rm -rf /home/$systemUser/$benchFolderName/apps/erpnext \
-    && rm -rf /home/$systemUser/$benchFolderName/apps/payments \
-    && rm -rf /home/$systemUser/$benchFolderName/apps/hrms \
-    && bench get-app --branch ${CUSTOM_ERPNEXT_BRANCH} https://${GITHUB_PAT_TOKEN}@github.com/${CUSTOM_ERPNEXT_GITHUB_PATH} \
+    && rm -rf /home/frappe/bench/apps/erpnext /home/frappe/bench/apps/payments /home/frappe/bench/apps/hrms
+
+RUN echo "-> get-app erpnext" \
+    && bench get-app --branch ${CUSTOM_ERPNEXT_BRANCH} https://x-access-token:${GITHUB_PAT_TOKEN}@github.com/${CUSTOM_ERPNEXT_GITHUB_PATH}
+
+RUN echo "-> get-app payments + hrms" \
     && bench get-app --branch version-15 https://github.com/frappe/payments \
-    && bench get-app --branch version-15 https://github.com/frappe/hrms \
+    && bench get-app --branch version-15 https://github.com/frappe/hrms
+
+RUN echo "-> get-app whitelist" \
     && if [ -n "${CUSTOM_WHITELIST_GITHUB_PATH}" ]; then \
-         bench get-app --branch ${CUSTOM_WHITELIST_BRANCH} https://${GITHUB_PAT_TOKEN}@github.com/${CUSTOM_WHITELIST_GITHUB_PATH}; \
+         bench get-app --branch ${CUSTOM_WHITELIST_BRANCH} https://x-access-token:${GITHUB_PAT_TOKEN}@github.com/${CUSTOM_WHITELIST_GITHUB_PATH}; \
        fi \
     && echo "-> Builder done!"
 
