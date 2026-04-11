@@ -15,7 +15,7 @@ USER frappe
 WORKDIR /home/frappe/bench
 
 ARG GITHUB_PAT_TOKEN
-# Private GitHub clones: PAT as HTTPS user (proven on Railway). x-access-token: form can fail with some git/bench combos.
+# Private GitHub clones: send PAT via git http.extraHeader (works for classic + fine-grained tokens; URL-embedded PAT often fails in CI).
 ARG CUSTOM_ERPNEXT_BRANCH=prod
 ARG CUSTOM_ERPNEXT_GITHUB_PATH=AchuDexQBit/erpnext
 # Private app (bench get-app). Empty on template branches; set per client branch.
@@ -33,7 +33,12 @@ RUN echo "-> Builder cleanup" \
     && rm -rf /home/frappe/bench/apps/erpnext /home/frappe/bench/apps/payments /home/frappe/bench/apps/hrms
 
 RUN echo "-> get-app erpnext" \
-    && bench get-app --branch ${CUSTOM_ERPNEXT_BRANCH} https://${GITHUB_PAT_TOKEN}@github.com/${CUSTOM_ERPNEXT_GITHUB_PATH}
+    && git config --global http.https://github.com/.extraHeader "AUTHORIZATION: token ${GITHUB_PAT_TOKEN}" \
+    && if bench get-app --branch ${CUSTOM_ERPNEXT_BRANCH} https://github.com/${CUSTOM_ERPNEXT_GITHUB_PATH}.git; then \
+         git config --global --unset http.https://github.com/.extraHeader; \
+       else \
+         _e=$?; git config --global --unset http.https://github.com/.extraHeader 2>/dev/null || true; exit $_e; \
+       fi
 
 RUN echo "-> get-app payments + hrms" \
     && bench get-app --branch version-15 https://github.com/frappe/payments \
@@ -41,7 +46,12 @@ RUN echo "-> get-app payments + hrms" \
 
 RUN echo "-> get-app whitelist" \
     && if [ -n "${CUSTOM_WHITELIST_GITHUB_PATH}" ]; then \
-         bench get-app --branch ${CUSTOM_WHITELIST_BRANCH} https://${GITHUB_PAT_TOKEN}@github.com/${CUSTOM_WHITELIST_GITHUB_PATH}; \
+         git config --global http.https://github.com/.extraHeader "AUTHORIZATION: token ${GITHUB_PAT_TOKEN}"; \
+         if bench get-app --branch ${CUSTOM_WHITELIST_BRANCH} https://github.com/${CUSTOM_WHITELIST_GITHUB_PATH}.git; then \
+           git config --global --unset http.https://github.com/.extraHeader; \
+         else \
+           _e=$?; git config --global --unset http.https://github.com/.extraHeader 2>/dev/null || true; exit $_e; \
+         fi; \
        fi \
     && echo "-> Builder done!"
 
