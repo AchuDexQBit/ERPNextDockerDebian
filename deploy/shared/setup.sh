@@ -36,6 +36,16 @@ fi
 
 echo "-> Create new site with ERPNext (DB ${_RFP_DB_HOST}:${_RFP_DB_PORT})"
 
+_remove_incomplete_site_dir() {
+    _d="/home/frappe/bench/sites/${RFP_DOMAIN_NAME}"
+    if [ -d "${_d}" ] && [ ! -f "${_d}/site_config.json" ]; then
+        echo "-> Removing incomplete site directory (no site_config.json): ${_d}"
+        rm -rf "${_d}"
+        return 0
+    fi
+    return 1
+}
+
 _bench_new_site() {
     su frappe -c "cd /home/frappe/bench && bench new-site ${RFP_DOMAIN_NAME} \
         --admin-password ${RFP_SITE_ADMIN_PASSWORD} \
@@ -87,15 +97,27 @@ PY
 EOSU
 }
 
-set +e
-_new_site_log=$(_bench_new_site 2>&1)
-_new_site_rc=$?
-set -e
-printf '%s\n' "${_new_site_log}"
+_new_site_rc=1
+for _attempt in 1 2; do
+    _remove_incomplete_site_dir || true
+    set +e
+    _new_site_log=$(_bench_new_site 2>&1)
+    _new_site_rc=$?
+    set -e
+    printf '%s\n' "${_new_site_log}"
+    if [ "${_new_site_rc}" -eq 0 ]; then
+        break
+    fi
+    if [ "${_attempt}" -eq 1 ] && printf '%s' "${_new_site_log}" | grep -qi 'already exists' && _remove_incomplete_site_dir; then
+        echo "-> Retrying bench new-site after removing stale site folder"
+        continue
+    fi
+    break
+done
 
 if [ "${_new_site_rc}" -ne 0 ]; then
     if printf '%s' "${_new_site_log}" | grep -qi 'already exists'; then
-        echo "-> new-site failed: site or database already exists but site files are missing (common if sites/ was not on a volume)."
+        echo "-> new-site still failing after stale-folder cleanup (often orphan MariaDB from old boots)."
         if [ "${RFP_RECOVER_ORPHAN_SITE:-}" = "true" ]; then
             echo "-> RFP_RECOVER_ORPHAN_SITE=true: remove orphan DB then retry new-site"
             _site_cfg="/home/frappe/bench/sites/${RFP_DOMAIN_NAME}/site_config.json"
@@ -115,7 +137,7 @@ if [ "${_new_site_rc}" -ne 0 ]; then
                 exit "${_retry_rc}"
             fi
         else
-            echo "ERROR: Fix once: set RFP_RECOVER_ORPHAN_SITE=true in env and recreate the container, or run bench drop-site with --db-root-password, then remove that var. See deploy/README.md."
+            echo "ERROR: Rebuild/pull image with fixed entrypoint (no mkdir sites/<site>), or set RFP_RECOVER_ORPHAN_SITE=true once if MariaDB still has a leftover DB. See deploy/README.md."
             exit 1
         fi
     else
