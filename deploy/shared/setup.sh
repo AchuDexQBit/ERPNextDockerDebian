@@ -18,7 +18,9 @@ if queue:
 if socketio:
     d["redis_socketio"] = socketio
 d["socketio_port"] = 9000
-d["user_types"] = {"Employee Self Service": 500}
+# Frappe v15 UserType.validate_document_type_limit reads frappe.conf["user_type_doctype_limit"][frappe.scrub(name)] — not "user_types".
+# Required for HRMS after_install (Employee Self Service). Scrubbed name: employee_self_service
+d["user_type_doctype_limit"] = {"employee_self_service": 500}
 with open(path, "w") as f:
     json.dump(d, f)
 PY
