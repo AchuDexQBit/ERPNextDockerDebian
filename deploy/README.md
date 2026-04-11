@@ -192,6 +192,8 @@ See also [`deploy/client.env.example`](./client.env.example) for keys and placeh
 ```sh
 docker compose -p client-abc -f deploy/compose.yml --env-file secrets/env.abc up -d
 docker compose -p client-xyz -f deploy/compose.yml --env-file secrets/env.xyz up -d
+
+docker compose -p dqb_distributors -f compose.yml --env-file secrets/dqb_distributors.env exec --user frappe erpnext bash -c "cd /home/frappe/bench && bench --site dqb-distributors.dexqbit.com build"
 ```
 
 Adjust paths if your compose file lives elsewhere; **`-p`** keeps the two stacks isolated.
