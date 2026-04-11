@@ -21,6 +21,7 @@ ARG CUSTOM_WHITELIST_GITHUB_PATH=AchuDexQBit/erpnext_app_dqb_distributors
 ARG CUSTOM_WHITELIST_BRANCH=dqb_distributors-prod
 
 RUN echo "-> Start builder" \
+    && if [ -z "${GITHUB_PAT_TOKEN}" ]; then echo "ERROR: build-arg GITHUB_PAT_TOKEN is empty (set GitHub secret CUSTOMISATION_TOKEN for CI)"; exit 1; fi \
     && rm -rf /home/$systemUser/$benchFolderName/sites/site1.local \
     && sed -i 's/socket\.AF_INET, socket\.SOCK_STREAM/socket.AF_INET6, socket.SOCK_STREAM/g' /home/frappe/bench/apps/frappe/frappe/utils/connections.py \
     && bench remove-app erpnext --no-backup || true \
@@ -29,9 +30,9 @@ RUN echo "-> Start builder" \
     && rm -rf /home/$systemUser/$benchFolderName/apps/erpnext \
     && rm -rf /home/$systemUser/$benchFolderName/apps/payments \
     && rm -rf /home/$systemUser/$benchFolderName/apps/hrms \
+    && bench get-app --branch ${CUSTOM_ERPNEXT_BRANCH} https://${GITHUB_PAT_TOKEN}@github.com/${CUSTOM_ERPNEXT_GITHUB_PATH} \
     && bench get-app --branch version-15 https://github.com/frappe/payments \
     && bench get-app --branch version-15 https://github.com/frappe/hrms \
-    && bench get-app --branch ${CUSTOM_ERPNEXT_BRANCH} https://${GITHUB_PAT_TOKEN}@github.com/${CUSTOM_ERPNEXT_GITHUB_PATH} \
     && if [ -n "${CUSTOM_WHITELIST_GITHUB_PATH}" ]; then \
          bench get-app --branch ${CUSTOM_WHITELIST_BRANCH} https://${GITHUB_PAT_TOKEN}@github.com/${CUSTOM_WHITELIST_GITHUB_PATH}; \
        fi \
