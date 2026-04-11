@@ -15,6 +15,7 @@ USER frappe
 WORKDIR /home/frappe/bench
 
 ARG GITHUB_PAT_TOKEN
+# Private GitHub clones: PAT as HTTPS user (proven on Railway). x-access-token: form can fail with some git/bench combos.
 ARG CUSTOM_ERPNEXT_BRANCH=prod
 ARG CUSTOM_ERPNEXT_GITHUB_PATH=AchuDexQBit/erpnext
 # Private app (bench get-app). Empty on template branches; set per client branch.
@@ -32,7 +33,7 @@ RUN echo "-> Builder cleanup" \
     && rm -rf /home/frappe/bench/apps/erpnext /home/frappe/bench/apps/payments /home/frappe/bench/apps/hrms
 
 RUN echo "-> get-app erpnext" \
-    && bench get-app --branch ${CUSTOM_ERPNEXT_BRANCH} https://x-access-token:${GITHUB_PAT_TOKEN}@github.com/${CUSTOM_ERPNEXT_GITHUB_PATH}
+    && bench get-app --branch ${CUSTOM_ERPNEXT_BRANCH} https://${GITHUB_PAT_TOKEN}@github.com/${CUSTOM_ERPNEXT_GITHUB_PATH}
 
 RUN echo "-> get-app payments + hrms" \
     && bench get-app --branch version-15 https://github.com/frappe/payments \
@@ -40,7 +41,7 @@ RUN echo "-> get-app payments + hrms" \
 
 RUN echo "-> get-app whitelist" \
     && if [ -n "${CUSTOM_WHITELIST_GITHUB_PATH}" ]; then \
-         bench get-app --branch ${CUSTOM_WHITELIST_BRANCH} https://x-access-token:${GITHUB_PAT_TOKEN}@github.com/${CUSTOM_WHITELIST_GITHUB_PATH}; \
+         bench get-app --branch ${CUSTOM_WHITELIST_BRANCH} https://${GITHUB_PAT_TOKEN}@github.com/${CUSTOM_WHITELIST_GITHUB_PATH}; \
        fi \
     && echo "-> Builder done!"
 
