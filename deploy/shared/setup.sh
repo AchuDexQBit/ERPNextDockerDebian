@@ -155,6 +155,9 @@ if [ -n "${BENCH_EXTRA_APPS:-}" ]; then
     done
 fi
 
+echo "-> Migrate site (patches, schema, fixtures / role sync for installed apps)"
+su frappe -c "cd /home/frappe/bench && bench --site ${RFP_DOMAIN_NAME} migrate"
+
 if [ -n "${RFP_PUBLIC_URL:-}" ]; then
     _pub_host="${RFP_PUBLIC_URL#*://}"
     _pub_host="${_pub_host%%/*}"
