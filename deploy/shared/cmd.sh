@@ -27,6 +27,10 @@ if ut.get("employee_self_service") is None:
     changed = True
 if d.pop("user_types", None) is not None:
     changed = True
+if d.get("db_host") != "db":
+    d["db_host"] = "db"
+    d["db_port"] = 3306
+    changed = True
 if changed:
     with open(path, "w") as f:
         json.dump(d, f, indent=2)
@@ -36,6 +40,9 @@ fi
 
 echo "-> Clearing cache"
 su frappe -c "cd /home/frappe/bench && bench --site ${RFP_DOMAIN_NAME} clear-cache" || true
+
+echo "-> Running migrate"
+su frappe -c "cd /home/frappe/bench && bench --site ${RFP_DOMAIN_NAME} migrate" || true
 
 echo "-> Bursting env into config"
 envsubst '${RFP_DOMAIN_NAME}' < /home/frappe/temp_nginx.conf > /etc/nginx/conf.d/default.conf
