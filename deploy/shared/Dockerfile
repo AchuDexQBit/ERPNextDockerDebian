@@ -56,7 +56,7 @@ ARG DEPLOY_TARGET=generic
 ARG BENCH_EXTRA_APPS=""
 ENV BENCH_EXTRA_APPS="${BENCH_EXTRA_APPS}"
 
-LABEL org.opencontainers.image.source="https://github.com/frappe/erpnext"
+LABEL org.opencontainers.image.source="https://github.com/AchuDexQBit/erpnext"
 LABEL deploy.target="${DEPLOY_TARGET}"
 
 RUN echo "-> Install nginx & supervisor" \
