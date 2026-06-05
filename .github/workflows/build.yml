@@ -50,3 +50,5 @@ jobs:
           build-args: |
             GITHUB_PAT_TOKEN=${{ secrets.CUSTOMISATION_TOKEN }}
             DEPLOY_TARGET=ci
+            CUSTOM_WHITELIST_GITHUB_PATH=AchuDexQBit/erpnext_app_demo_malabar
+            CUSTOM_WHITELIST_BRANCH=prod
