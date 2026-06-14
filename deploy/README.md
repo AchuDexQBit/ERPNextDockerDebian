@@ -50,7 +50,7 @@ The same client usually has **three branches** if you run all tiers; each branch
    Edit `deploy/client.env`: for **GHCR deploy**, set **`GHCR_IMAGE=ghcr.io/<owner>/erpnext-<branch>:latest`** (same branch CI built) plus runtime fields (`RFP_*`, passwords). **`BENCH_EXTRA_APPS`** is optional if your branch’s Dockerfile bakes the list. Build-arg fields (`GITHUB_PAT_TOKEN`, `CUSTOM_*`) matter in **CI**, not on the VPS when you only pull. Reference: [`deploy/client.env.example`](./client.env.example).
 
 5. **Deploy (Hetzner or AWS — GHCR)**
-   - Install Docker + Compose on the VPS; **`docker login ghcr.io`** (PAT with **`read:packages`**).
+   - Install Docker + Compose on the VPS/EC2; **`docker login ghcr.io`** (PAT with **`read:packages`**).
    - From the **repository root** (or after copying [`deploy/compose.ghcr.yml`](./compose.ghcr.yml) + `client.env` into one folder on a minimal host):
 
      ```sh
@@ -58,10 +58,11 @@ The same client usually has **three branches** if you run all tiers; each branch
      ```
 
    - **Same command** on **Hetzner and AWS**; only DNS, firewall, and optional reverse proxy differ.
+   - **AWS auto-deploy after CI:** see [`aws/README.md`](../aws/README.md) (GitHub Actions SSH → `compose pull` / `up` on EC2).
 
 6. **Railway (optional):** connect the service to this branch; set build args + runtime like `deploy/client.env`. Dockerfile: `railway/Dockerfile`.
 
-7. **Render (optional):** connect the client branch and apply [`render.yaml`](../render.yaml) (MariaDB + Redis + ERPNext). Set dashboard secrets (`sync: false` keys). Dockerfile: `render/Dockerfile`.
+7. **Render (optional):** see [`render/README.md`](../render/README.md) (GHCR image + MariaDB + Redis on Render).
 
 **One-line summary:** branch → push (CI → GHCR) → `deploy/client.env` + **`GHCR_IMAGE`** → `docker compose -f deploy/compose.ghcr.yml … up -d` on Hetzner or AWS (or Railway / Render).
 
@@ -242,12 +243,7 @@ docker compose -f render/docker-compose.yml --env-file deploy/client.env up -d -
 
 ### 7. Render
 
-- Connect the **client branch** and create a Blueprint from [`render.yaml`](../render.yaml) at the repo root.
-- The Blueprint provisions **MariaDB** (private service), **Redis** (Key Value), and the **ERPNext** web service (`render/Dockerfile`, symlink to `deploy/shared/Dockerfile`).
-- When prompted, set **`sync: false`** values in the Render dashboard: `GITHUB_PAT_TOKEN`, `CUSTOM_ERPNEXT_GITHUB_PATH`, `RFP_DOMAIN_NAME`, `RFP_PUBLIC_URL`, `RFP_SITE_ADMIN_PASSWORD`, and `MARIADB_ROOT_PASSWORD` on the DB service.
-- **`RFP_DB_HOST`**, **`RFP_DB_ROOT_PASSWORD`**, and **`RFP_REDIS_URL`** are wired from the other services; match **`RFP_DB_ROOT_PASSWORD`** to **`MARIADB_ROOT_PASSWORD`** via the blueprint.
-- Attach the **`frappe-sites`** disk (defined in `render.yaml`) so site files survive redeploys.
-- Optional on-VPS build: `docker compose -f render/docker-compose.yml --env-file deploy/client.env up -d --build` (§5 pattern).
+See [`render/README.md`](../render/README.md) for the full guide (GHCR pull, env vars, redeploys, and optional Blueprint).
 
 ### 8. GitHub Actions and secrets
 
@@ -262,15 +258,16 @@ Pushing the branch triggers [`.github/workflows/build.yml`](../.github/workflows
 
 ## Layout reference
 
-| Path                                                         | Role                                                                   |
-| ------------------------------------------------------------ | ---------------------------------------------------------------------- |
-| `deploy/shared/Dockerfile`                                   | Canonical production image                                             |
-| `deploy/shared/*.sh`, `temp_*.conf`                          | Entrypoint, setup, nginx/supervisor templates                          |
-| `deploy/client.env.example`                                  | Template with placeholders; copy to `deploy/client.env`                |
-| `railway/Dockerfile`, `render/Dockerfile`, `hetzner/Dockerfile`, `aws/Dockerfile` | Symlinks to `deploy/shared/Dockerfile`                                 |
-| [`render.yaml`](../render.yaml)                                | **Default Render:** Blueprint (MariaDB pserv + Key Value + ERPNext web) |
-| [`deploy/compose.ghcr.yml`](./compose.ghcr.yml)              | **Default** Hetzner/AWS: GHCR image + MariaDB + Redis (`db` / `redis`) |
-| `hetzner/docker-compose.yml`, `aws/docker-compose.yml`, `render/docker-compose.yml` | Optional on-VPS `docker build` (§5)                                    |
+| Path                                                                                | Role                                                                    |
+| ----------------------------------------------------------------------------------- | ----------------------------------------------------------------------- |
+| `deploy/shared/Dockerfile`                                                          | Canonical production image                                              |
+| `deploy/shared/*.sh`, `temp_*.conf`                                                 | Entrypoint, setup, nginx/supervisor templates                           |
+| `deploy/client.env.example`                                                         | Template with placeholders; copy to `deploy/client.env`                 |
+| `railway/Dockerfile`, `render/Dockerfile`, `hetzner/Dockerfile`, `aws/Dockerfile`   | Symlinks to `deploy/shared/Dockerfile`                                  |
+| [`render.yaml`](../render.yaml)                                                     | **Default Render:** Blueprint (MariaDB pserv + Key Value + ERPNext web) |
+| [`deploy/compose.ghcr.yml`](./compose.ghcr.yml)                                     | **Default** Hetzner/AWS: GHCR image + MariaDB + Redis (`db` / `redis`)  |
+| `hetzner/docker-compose.yml`, `aws/docker-compose.yml`, `render/docker-compose.yml` | Optional on-VPS `docker build` (§5)                                     |
+| [`aws/README.md`](../aws/README.md)                                                 | **AWS:** GHCR on EC2 + GitHub Actions auto-deploy (SSH)                 |
 
 ---
 

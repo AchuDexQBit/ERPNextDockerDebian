@@ -15,6 +15,7 @@ WORKDIR /home/$systemUser/$benchFolderName
 
 ARG GITHUB_PAT_TOKEN
 ARG CUSTOM_ERPNEXT_BRANCH=prod
+# Empty = skip ERPNext fork (Frappe-only / custom-backend clients). Pass CUSTOM_ERPNEXT_GITHUB_PATH= in build-args.
 ARG CUSTOM_ERPNEXT_GITHUB_PATH=DexQBit/erpnext
 ARG CUSTOM_WHITELIST_GITHUB_PATH=
 ARG CUSTOM_WHITELIST_BRANCH=prod
@@ -26,8 +27,10 @@ RUN echo "-> Start builder" \
     && bench remove-app payments --no-backup || true \
     && rm -rf /home/$systemUser/$benchFolderName/apps/erpnext \
     && rm -rf /home/$systemUser/$benchFolderName/apps/payments \
-    && bench get-app --branch version-15 https://github.com/frappe/payments \
-    && bench get-app --branch ${CUSTOM_ERPNEXT_BRANCH} https://${GITHUB_PAT_TOKEN}@github.com/${CUSTOM_ERPNEXT_GITHUB_PATH} \
+    && if [ -n "${CUSTOM_ERPNEXT_GITHUB_PATH}" ]; then \
+         bench get-app --branch version-15 https://github.com/frappe/payments \
+         && bench get-app --branch ${CUSTOM_ERPNEXT_BRANCH} https://${GITHUB_PAT_TOKEN}@github.com/${CUSTOM_ERPNEXT_GITHUB_PATH}; \
+       fi \
     && if [ -n "${CUSTOM_WHITELIST_GITHUB_PATH}" ]; then \
          bench get-app --branch ${CUSTOM_WHITELIST_BRANCH} https://${GITHUB_PAT_TOKEN}@github.com/${CUSTOM_WHITELIST_GITHUB_PATH}; \
        fi \
@@ -51,8 +54,11 @@ WORKDIR /home/$systemUser/$benchFolderName
 
 ARG DEBIAN_FRONTEND=noninteractive
 ARG DEPLOY_TARGET=generic
-# Space-separated app names for `bench install-app` on first boot (must exist under bench/apps from the builder). Empty = ERPNext only.
-# Set per client branch or pass build-arg / env_file. Server env_file overrides ENV when set.
+# Space-separated app names passed to `bench new-site --install-app` on first boot (folder names under bench/apps).
+# Default erpnext. Frappe-only backend: set to your app only (e.g. mlbr_sparebox_be) and leave CUSTOM_ERPNEXT_GITHUB_PATH empty at build.
+ARG BENCH_INSTALL_APPS=erpnext
+ENV BENCH_INSTALL_APPS="${BENCH_INSTALL_APPS}"
+# Additional apps installed after new-site via `bench install-app`.
 ARG BENCH_EXTRA_APPS=""
 ENV BENCH_EXTRA_APPS="${BENCH_EXTRA_APPS}"
 

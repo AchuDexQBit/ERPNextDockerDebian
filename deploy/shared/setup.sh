@@ -34,7 +34,13 @@ if [ -n "${RFP_DB_PASSWORD:-}" ]; then
     _NEW_SITE_DB_ARGS="${_NEW_SITE_DB_ARGS} --db-password ${RFP_DB_PASSWORD}"
 fi
 
-echo "-> Create new site with ERPNext (DB ${_RFP_DB_HOST}:${_RFP_DB_PORT})"
+_BENCH_INSTALL_APPS="${BENCH_INSTALL_APPS:-erpnext}"
+_install_app_args=""
+for _app in ${_BENCH_INSTALL_APPS}; do
+    _install_app_args="${_install_app_args} --install-app ${_app}"
+done
+
+echo "-> Create new site (apps:${_BENCH_INSTALL_APPS:-frappe-only} DB ${_RFP_DB_HOST}:${_RFP_DB_PORT})"
 
 _remove_incomplete_site_dir() {
     _d="/home/frappe/bench/sites/${RFP_DOMAIN_NAME}"
@@ -54,7 +60,7 @@ _bench_new_site() {
         --mariadb-user-host-login-scope ${_RFP_MARIADB_SCOPE} \
         --db-root-password ${RFP_DB_ROOT_PASSWORD} \
         ${_NEW_SITE_DB_ARGS} \
-        --install-app erpnext"
+        ${_install_app_args}"
 }
 
 # Frappe v15 default DB name is "_" + sha1(realpath(sites/<site>))[:16]. bench drop-site needs a site folder;
