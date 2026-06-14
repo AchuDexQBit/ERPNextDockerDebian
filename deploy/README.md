@@ -84,12 +84,12 @@ docker compose -p dqb_distributors -f compose.yml --env-file secrets/dqb_distrib
 
 ## Concepts
 
-| What                                         | Where it lives                                                                                                      |
-| -------------------------------------------- | ------------------------------------------------------------------------------------------------------------------- |
-| Shared image definition                      | `deploy/shared/Dockerfile` (+ scripts and nginx/supervisor templates in `deploy/shared/`)                           |
-| Client + env **code/config** in Git          | Branch `<client_name>-<env>` (optional edits to Dockerfile, compose files, defaults)                                |
-| Client-specific **secrets**                  | `deploy/client.env` on the server (gitignored), or GitHub Actions secrets / Environments                            |
-| Apps **cloned into the image**               | `bench get-app` in the Dockerfile **builder** stage (`GITHUB_PAT_TOKEN`, `CUSTOM_ERPNEXT_*`, `CUSTOM_WHITELIST_*`)  |
+| What                                         | Where it lives                                                                                                               |
+| -------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------- |
+| Shared image definition                      | `deploy/shared/Dockerfile` (+ scripts and nginx/supervisor templates in `deploy/shared/`)                                    |
+| Client + env **code/config** in Git          | Branch `<client_name>-<env>` (optional edits to Dockerfile, compose files, defaults)                                         |
+| Client-specific **secrets**                  | `deploy/client.env` on the server (gitignored), or GitHub Actions secrets / Environments                                     |
+| Apps **cloned into the image**               | `bench get-app` in the Dockerfile **builder** stage (`GITHUB_PAT_TOKEN`, `CUSTOM_ERPNEXT_*`, `CUSTOM_WHITELIST_*`)           |
 | Apps **installed on the site** at first boot | Optional **`BENCH_EXTRA_APPS`** (Dockerfile `ARG`/`ENV` or env file); default **none** besides ERPNext from `bench new-site` |
 
 ### Example: Payments + HRMS + one private (whitelist) app
@@ -193,7 +193,7 @@ See also [`deploy/client.env.example`](./client.env.example) for keys and placeh
 **Hetzner and AWS use the same flow:** pull the image CI published to GHCR; you do **not** need to clone this deploy repo on the VPS (optional: keep a shallow clone only if you want to run Compose from the repo tree).
 
 1. Wait for [`.github/workflows/build.yml`](../.github/workflows/build.yml) after pushing the client branch (`ghcr.io/<owner>/erpnext-<branch>:latest`).
-2. On the VPS: Docker + Compose; **`echo YOUR_GHCR_PAT | docker login ghcr.io -u AchuDexQBit --password-stdin`** (GitHub user + PAT with **`read:packages`**).
+2. On the VPS: Docker + Compose; **`echo YOUR_GHCR_PAT | docker login ghcr.io -u DexQBit --password-stdin`** (GitHub user + PAT with **`read:packages`**).
 3. Put **`GHCR_IMAGE`** (that tag) plus **runtime** variables in **`deploy/client.env`** — see [`deploy/client.env.example`](./client.env.example). You do **not** need `GITHUB_PAT_TOKEN` on the server for pull-only deploy.
 4. From **repository root**:
 

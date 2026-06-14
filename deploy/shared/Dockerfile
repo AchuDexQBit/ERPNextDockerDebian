@@ -15,7 +15,7 @@ WORKDIR /home/$systemUser/$benchFolderName
 
 ARG GITHUB_PAT_TOKEN
 ARG CUSTOM_ERPNEXT_BRANCH=prod
-ARG CUSTOM_ERPNEXT_GITHUB_PATH=AchuDexQBit/erpnext
+ARG CUSTOM_ERPNEXT_GITHUB_PATH=DexQBit/erpnext
 ARG CUSTOM_WHITELIST_GITHUB_PATH=
 ARG CUSTOM_WHITELIST_BRANCH=prod
 
@@ -56,7 +56,7 @@ ARG DEPLOY_TARGET=generic
 ARG BENCH_EXTRA_APPS=""
 ENV BENCH_EXTRA_APPS="${BENCH_EXTRA_APPS}"
 
-LABEL org.opencontainers.image.source="https://github.com/AchuDexQBit/erpnext"
+LABEL org.opencontainers.image.source="https://github.com/DexQBit/erpnext"
 LABEL deploy.target="${DEPLOY_TARGET}"
 
 RUN echo "-> Install nginx & supervisor" \
