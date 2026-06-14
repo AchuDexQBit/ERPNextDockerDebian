@@ -61,7 +61,9 @@ The same client usually has **three branches** if you run all tiers; each branch
 
 6. **Railway (optional):** connect the service to this branch; set build args + runtime like `deploy/client.env`. Dockerfile: `railway/Dockerfile`.
 
-**One-line summary:** branch → push (CI → GHCR) → `deploy/client.env` + **`GHCR_IMAGE`** → `docker compose -f deploy/compose.ghcr.yml … up -d` on Hetzner or AWS (or Railway).
+7. **Render (optional):** connect the client branch and apply [`render.yaml`](../render.yaml) (MariaDB + Redis + ERPNext). Set dashboard secrets (`sync: false` keys). Dockerfile: `render/Dockerfile`.
+
+**One-line summary:** branch → push (CI → GHCR) → `deploy/client.env` + **`GHCR_IMAGE`** → `docker compose -f deploy/compose.ghcr.yml … up -d` on Hetzner or AWS (or Railway / Render).
 
 ### Minimal VPS (only compose + secrets)
 
@@ -226,6 +228,8 @@ If you **`git clone` this repo** on the server and run **`docker compose … --b
 docker compose -f hetzner/docker-compose.yml --env-file deploy/client.env up -d --build
 # or
 docker compose -f aws/docker-compose.yml    --env-file deploy/client.env up -d --build
+# or
+docker compose -f render/docker-compose.yml --env-file deploy/client.env up -d --build
 ```
 
 **One clone, many client branches:** use **`git worktree`** so each client has its own directory on its branch, then build from each with a unique **`-p`** and **port**. Otherwise prefer **§4 (GHCR)** and skip cloning this project on the VPS.
@@ -236,7 +240,16 @@ docker compose -f aws/docker-compose.yml    --env-file deploy/client.env up -d -
 - Dockerfile path can stay `railway/Dockerfile` (symlink to `deploy/shared/Dockerfile`).
 - Set the **same** variables in Railway’s UI as you would put in `deploy/client.env` (build arguments and runtime environment).
 
-### 7. GitHub Actions and secrets
+### 7. Render
+
+- Connect the **client branch** and create a Blueprint from [`render.yaml`](../render.yaml) at the repo root.
+- The Blueprint provisions **MariaDB** (private service), **Redis** (Key Value), and the **ERPNext** web service (`render/Dockerfile`, symlink to `deploy/shared/Dockerfile`).
+- When prompted, set **`sync: false`** values in the Render dashboard: `GITHUB_PAT_TOKEN`, `CUSTOM_ERPNEXT_GITHUB_PATH`, `RFP_DOMAIN_NAME`, `RFP_PUBLIC_URL`, `RFP_SITE_ADMIN_PASSWORD`, and `MARIADB_ROOT_PASSWORD` on the DB service.
+- **`RFP_DB_HOST`**, **`RFP_DB_ROOT_PASSWORD`**, and **`RFP_REDIS_URL`** are wired from the other services; match **`RFP_DB_ROOT_PASSWORD`** to **`MARIADB_ROOT_PASSWORD`** via the blueprint.
+- Attach the **`frappe-sites`** disk (defined in `render.yaml`) so site files survive redeploys.
+- Optional on-VPS build: `docker compose -f render/docker-compose.yml --env-file deploy/client.env up -d --build` (§5 pattern).
+
+### 8. GitHub Actions and secrets
 
 Pushing the branch triggers [`.github/workflows/build.yml`](../.github/workflows/build.yml), which builds with `deploy/shared/Dockerfile` and tags the image with the **branch name**.
 
@@ -254,9 +267,10 @@ Pushing the branch triggers [`.github/workflows/build.yml`](../.github/workflows
 | `deploy/shared/Dockerfile`                                   | Canonical production image                                             |
 | `deploy/shared/*.sh`, `temp_*.conf`                          | Entrypoint, setup, nginx/supervisor templates                          |
 | `deploy/client.env.example`                                  | Template with placeholders; copy to `deploy/client.env`                |
-| `railway/Dockerfile`, `hetzner/Dockerfile`, `aws/Dockerfile` | Symlinks to `deploy/shared/Dockerfile`                                 |
+| `railway/Dockerfile`, `render/Dockerfile`, `hetzner/Dockerfile`, `aws/Dockerfile` | Symlinks to `deploy/shared/Dockerfile`                                 |
+| [`render.yaml`](../render.yaml)                                | **Default Render:** Blueprint (MariaDB pserv + Key Value + ERPNext web) |
 | [`deploy/compose.ghcr.yml`](./compose.ghcr.yml)              | **Default** Hetzner/AWS: GHCR image + MariaDB + Redis (`db` / `redis`) |
-| `hetzner/docker-compose.yml`, `aws/docker-compose.yml`       | Optional on-VPS `docker build` (§5)                                    |
+| `hetzner/docker-compose.yml`, `aws/docker-compose.yml`, `render/docker-compose.yml` | Optional on-VPS `docker build` (§5)                                    |
 
 ---
 

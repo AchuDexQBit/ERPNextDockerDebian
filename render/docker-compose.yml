@@ -1,0 +1,23 @@
+# Preferred: pull CI image from GHCR — deploy/README.md §4 and deploy/compose.ghcr.yml
+#
+# Optional — build on the server (full repo clone on the right branch):
+#   docker compose -f render/docker-compose.yml --env-file deploy/client.env up -d --build
+# Copy deploy/client.env.example to deploy/client.env first. Set DEPLOY_ENV_FILE in that file if you use a different name.
+
+services:
+  erpnext:
+    build:
+      context: ..
+      dockerfile: deploy/shared/Dockerfile
+      args:
+        GITHUB_PAT_TOKEN: ${GITHUB_PAT_TOKEN}
+        CUSTOM_ERPNEXT_BRANCH: ${CUSTOM_ERPNEXT_BRANCH:-prod}
+        CUSTOM_ERPNEXT_GITHUB_PATH: ${CUSTOM_ERPNEXT_GITHUB_PATH:-DexQBit/erpnext}
+        CUSTOM_WHITELIST_GITHUB_PATH: ${CUSTOM_WHITELIST_GITHUB_PATH:-}
+        CUSTOM_WHITELIST_BRANCH: ${CUSTOM_WHITELIST_BRANCH:-prod}
+        DEPLOY_TARGET: render
+    image: ${ERPNext_IMAGE_NAME:-erpnext-render}:local
+    ports:
+      - "${ERPNext_HTTP_PORT:-80}:80"
+    env_file:
+      - ../deploy/client.env

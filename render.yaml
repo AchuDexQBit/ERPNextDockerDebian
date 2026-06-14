@@ -1,0 +1,85 @@
+# Render Blueprint — connect this repo (client branch) and apply the Blueprint.
+# Set sync: false secrets in the dashboard when prompted. See deploy/README.md §6.
+#
+# ERPNext needs MariaDB + Redis + persistent sites. This stack mirrors deploy/compose.ghcr.yml
+# using Render private services, Key Value (Redis), and a disk on the web service.
+
+services:
+  - type: pserv
+    name: erpnext-db
+    runtime: image
+    plan: starter
+    image:
+      url: docker.io/library/mariadb:10.11
+    envVars:
+      - key: MARIADB_ROOT_PASSWORD
+        sync: false
+      - key: MARIADB_CHARACTER_SET_SERVER
+        value: utf8mb4
+      - key: MARIADB_COLLATE_SERVER
+        value: utf8mb4_unicode_ci
+    disk:
+      name: mariadb-data
+      mountPath: /var/lib/mysql
+      sizeGB: 10
+
+  - type: keyvalue
+    name: erpnext-redis
+    plan: starter
+    maxmemoryPolicy: allkeys-lru
+
+  - type: web
+    name: erpnext
+    runtime: docker
+    plan: standard
+    dockerfilePath: ./render/Dockerfile
+    dockerContext: .
+    healthCheckPath: /
+    disk:
+      name: frappe-sites
+      mountPath: /home/frappe/bench/sites
+      sizeGB: 10
+    envVars:
+      - key: PORT
+        value: "80"
+      - key: DEPLOY_TARGET
+        value: render
+      - key: GITHUB_PAT_TOKEN
+        sync: false
+      - key: CUSTOM_ERPNEXT_BRANCH
+        value: prod
+      - key: CUSTOM_ERPNEXT_GITHUB_PATH
+        sync: false
+      - key: CUSTOM_WHITELIST_GITHUB_PATH
+        value: ""
+      - key: CUSTOM_WHITELIST_BRANCH
+        value: prod
+      - key: BENCH_EXTRA_APPS
+        value: ""
+      - key: RFP_DOMAIN_NAME
+        sync: false
+      - key: RFP_PUBLIC_URL
+        sync: false
+      - key: RFP_SITE_ADMIN_PASSWORD
+        sync: false
+      - key: RFP_DB_HOST
+        fromService:
+          name: erpnext-db
+          type: pserv
+          property: host
+      - key: RFP_DB_PORT
+        value: "3306"
+      - key: RFP_DB_ROOT_PASSWORD
+        fromService:
+          name: erpnext-db
+          type: pserv
+          envVarKey: MARIADB_ROOT_PASSWORD
+      - key: RFP_REDIS_URL
+        fromService:
+          name: erpnext-redis
+          type: keyvalue
+          property: connectionString
+      - key: RFP_RECOVER_ORPHAN_SITE
+        value: "false"
+      - key: RFP_MARIADB_USER_HOST_LOGIN_SCOPE
+        value: "%"
