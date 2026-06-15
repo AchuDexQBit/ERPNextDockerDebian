@@ -70,5 +70,8 @@ jobs:
           script: |
             set -e
             cd /home/ubuntu/deploy
-            docker compose -p sparebox_stage -f compose.yml --env-file secrets/sparebox_stage.env pull erpnext
-            docker compose -p sparebox_stage -f compose.yml --env-file secrets/sparebox_stage.env up -d erpnext
+            docker compose -p sparebox_stage -f compose.yml --env-file secrets/sparebox_stage.env down
+            docker compose -p sparebox_stage -f compose.yml --env-file secrets/sparebox_stage.env up -d
+            docker compose -p sparebox_stage -f compose.yml --env-file secrets/sparebox_stage.env exec --user frappe erpnext bash -c "bench --site sparebox-stage.local migrate"
+            docker compose -p sparebox_stage -f compose.yml --env-file secrets/sparebox_stage.env exec --user frappe erpnext bash -c "bench build"
+            docker compose -p sparebox_stage -f compose.yml --env-file secrets/sparebox_stage.env exec --user frappe erpnext bash -c "bench --site sparebox-stage.local clear-cache"
