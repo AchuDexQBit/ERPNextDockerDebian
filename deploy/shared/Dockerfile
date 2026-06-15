@@ -22,7 +22,6 @@ ARG CUSTOM_WHITELIST_BRANCH=prod
 
 RUN echo "-> Start builder" \
     && rm -rf /home/$systemUser/$benchFolderName/sites/site1.local \
-    && sed -i 's/socket\.AF_INET, socket\.SOCK_STREAM/socket.AF_INET6, socket.SOCK_STREAM/g' /home/frappe/bench/apps/frappe/frappe/utils/connections.py \
     && bench remove-app erpnext --no-backup || true \
     && bench remove-app payments --no-backup || true \
     && rm -rf /home/$systemUser/$benchFolderName/apps/erpnext \
