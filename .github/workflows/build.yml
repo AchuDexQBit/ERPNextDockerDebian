@@ -4,6 +4,9 @@ on:
   push:
     branches:
       - "**"
+  repository_dispatch:
+    types:
+      - sparebox-stage-deploy
 
 env:
   REGISTRY: ghcr.io
@@ -17,19 +20,28 @@ jobs:
       packages: write
 
     steps:
-      - name: Checkout
+      - name: Checkout sparebox-stage branch
         uses: actions/checkout@v4
+        with:
+          # When triggered by dispatch, always build sparebox-stage branch
+          ref: ${{ github.event_name == 'repository_dispatch' && 'sparebox-stage' || github.ref }}
 
       - name: Derive image tag from branch name
         id: meta
         run: |
-          IMAGE_TAG="${{ env.IMAGE_PREFIX }}-${GITHUB_REF_NAME}:latest"
+          if [ "${{ github.event_name }}" = "repository_dispatch" ]; then
+            BRANCH="sparebox-stage"
+          else
+            BRANCH="${GITHUB_REF_NAME}"
+          fi
+          IMAGE_TAG="${{ env.IMAGE_PREFIX }}-${BRANCH}:latest"
           echo "image_tag=${IMAGE_TAG}" >> $GITHUB_OUTPUT
+          echo "branch=${BRANCH}" >> $GITHUB_OUTPUT
 
       - name: Require PAT for private bench get-app
         run: |
           if [ -z "${{ secrets.CUSTOMISATION_TOKEN }}" ]; then
-            echo "::error::Repository secret CUSTOMISATION_TOKEN is not set. Add a GitHub PAT with repo scope to clone private forks (Settings → Secrets and variables → Actions)."
+            echo "::error::Repository secret CUSTOMISATION_TOKEN is not set."
             exit 1
           fi
 
@@ -54,9 +66,12 @@ jobs:
             CUSTOM_WHITELIST_GITHUB_PATH=DexQBit/MLBR-Sparebox-BE
             CUSTOM_WHITELIST_BRANCH=stage
             BENCH_INSTALL_APPS=sparebox_be
+
   deploy-aws:
     needs: build-and-push
-    if: github.ref == 'refs/heads/sparebox-stage'
+    if: |
+      github.event_name == 'repository_dispatch' ||
+      github.ref == 'refs/heads/sparebox-stage'
     runs-on: ubuntu-latest
     environment: sparebox-stage
     steps:
@@ -71,6 +86,7 @@ jobs:
             set -e
             cd /home/ubuntu/deploy
             docker compose -p sparebox_stage -f compose.yml --env-file secrets/sparebox_stage.env down
+            docker compose -p sparebox_stage -f compose.yml --env-file secrets/sparebox_stage.env pull
             docker compose -p sparebox_stage -f compose.yml --env-file secrets/sparebox_stage.env up -d
             docker compose -p sparebox_stage -f compose.yml --env-file secrets/sparebox_stage.env exec --user frappe erpnext bash -c "bench --site sparebox-stage.local migrate"
             docker compose -p sparebox_stage -f compose.yml --env-file secrets/sparebox_stage.env exec --user frappe erpnext bash -c "bench build"
