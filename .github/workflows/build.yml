@@ -97,6 +97,7 @@ jobs:
           script: |
             set -e
             cd /home/ubuntu/deploy
+            docker image prune -a -f
             docker compose -p ${{ steps.vars.outputs.compose_project }} -f compose.yml --env-file ${{ steps.vars.outputs.env_file }} down
             docker compose -p ${{ steps.vars.outputs.compose_project }} -f compose.yml --env-file ${{ steps.vars.outputs.env_file }} pull
             docker compose -p ${{ steps.vars.outputs.compose_project }} -f compose.yml --env-file ${{ steps.vars.outputs.env_file }} up -d
