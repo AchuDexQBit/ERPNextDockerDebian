@@ -59,7 +59,8 @@ jobs:
           build-args: |
             GITHUB_PAT_TOKEN=${{ secrets.CUSTOMISATION_TOKEN }}
             DEPLOY_TARGET=ci
-            CUSTOM_ERPNEXT_GITHUB_PATH=
+            CUSTOM_ERPNEXT_GITHUB_PATH=DexQBit/erpnext
+            CUSTOM_ERPNEXT_BRANCH=version-16
             CUSTOM_WHITELIST_GITHUB_PATH=
             CUSTOM_WHITELIST_BRANCH=
 
