@@ -60,9 +60,8 @@ jobs:
             GITHUB_PAT_TOKEN=${{ secrets.CUSTOMISATION_TOKEN }}
             DEPLOY_TARGET=ci
             CUSTOM_ERPNEXT_GITHUB_PATH=
-            CUSTOM_WHITELIST_GITHUB_PATH=DexQBit/MLBR-Sparebox-BE
-            CUSTOM_WHITELIST_BRANCH=stage
-            BENCH_INSTALL_APPS=sparebox_be
+            CUSTOM_WHITELIST_GITHUB_PATH=
+            CUSTOM_WHITELIST_BRANCH=
 
   deploy-aws:
     needs: build-and-push

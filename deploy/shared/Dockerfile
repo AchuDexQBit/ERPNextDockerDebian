@@ -8,13 +8,13 @@
 # ------------------------------------------
 # - Stage: 01 - builder
 # ------------------------------------------
-FROM pipech/erpnext-docker-debian:version-15-latest AS builder
+FROM pipech/erpnext-docker-debian:version-16-latest AS builder
 
 USER $systemUser
 WORKDIR /home/$systemUser/$benchFolderName
 
 ARG GITHUB_PAT_TOKEN
-ARG CUSTOM_ERPNEXT_BRANCH=prod
+ARG CUSTOM_ERPNEXT_BRANCH=version-16
 ARG CUSTOM_ERPNEXT_GITHUB_PATH=DexQBit/erpnext
 ARG CUSTOM_WHITELIST_GITHUB_PATH=
 ARG CUSTOM_WHITELIST_BRANCH=prod
@@ -25,7 +25,9 @@ RUN echo "-> Start builder" \
     && bench remove-app payments --no-backup || true \
     && rm -rf /home/$systemUser/$benchFolderName/apps/erpnext \
     && rm -rf /home/$systemUser/$benchFolderName/apps/payments \
-    && bench get-app --branch version-15 https://github.com/frappe/payments \
+    && rm -rf /home/$systemUser/$benchFolderName/apps/crm \
+    && bench get-app --branch version-16 https://github.com/frappe/payments \
+    && bench get-app --branch develop https://github.com/frappe/crm \
     && bench get-app --branch ${CUSTOM_ERPNEXT_BRANCH} https://${GITHUB_PAT_TOKEN}@github.com/${CUSTOM_ERPNEXT_GITHUB_PATH} \
     && if [ -n "${CUSTOM_WHITELIST_GITHUB_PATH}" ]; then \
          bench get-app --branch ${CUSTOM_WHITELIST_BRANCH} https://${GITHUB_PAT_TOKEN}@github.com/${CUSTOM_WHITELIST_GITHUB_PATH}; \
@@ -50,9 +52,9 @@ WORKDIR /home/$systemUser/$benchFolderName
 
 ARG DEBIAN_FRONTEND=noninteractive
 ARG DEPLOY_TARGET=generic
-# Space-separated app names for `bench install-app` on first boot (must exist under bench/apps from the builder). Empty = ERPNext only.
-# Set per client branch or pass build-arg / env_file. Server env_file overrides ENV when set.
-ARG BENCH_EXTRA_APPS=""
+# Space-separated app names for `bench install-app` on first boot (must exist under bench/apps from the builder).
+# Server env_file overrides ENV when set.
+ARG BENCH_EXTRA_APPS="crm"
 ENV BENCH_EXTRA_APPS="${BENCH_EXTRA_APPS}"
 
 LABEL org.opencontainers.image.source="https://github.com/DexQBit/erpnext"
