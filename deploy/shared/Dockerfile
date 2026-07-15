@@ -37,7 +37,8 @@ RUN echo "-> Start builder" \
 # ------------------------------------------
 # - Stage: 02 - production
 # ------------------------------------------
-FROM frappe/bench:v5.22.9
+# Must match pipech version-16 base (Python 3.14 / pyenv). v5.22.9 breaks `bench build` after COPY.
+FROM frappe/bench:v5.29.0
 
 ENV systemUser=frappe
 ENV benchFolderName=bench
