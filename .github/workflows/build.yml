@@ -6,7 +6,7 @@ on:
       - "**"
   repository_dispatch:
     types:
-      - client-stage-deploy
+      - client-prod-deploy
 
 env:
   REGISTRY: ghcr.io
@@ -61,16 +61,16 @@ jobs:
             DEPLOY_TARGET=ci
             CUSTOM_ERPNEXT_GITHUB_PATH=
             CUSTOM_WHITELIST_GITHUB_PATH=DexQBit/MLBR-Sparebox-BE
-            CUSTOM_WHITELIST_BRANCH=stage
+            CUSTOM_WHITELIST_BRANCH=prod
             BENCH_INSTALL_APPS=sparebox_be
 
   deploy-aws:
     needs: build-and-push
     if: |
       github.event_name == 'repository_dispatch' ||
-      github.ref == 'refs/heads/sparebox-stage'
+      github.ref == 'refs/heads/sparebox-prod'
     runs-on: ubuntu-latest
-    environment: ${{ github.event_name == 'repository_dispatch' && github.event.client_payload.client || 'sparebox' }}-stage
+    environment: ${{ github.event_name == 'repository_dispatch' && github.event.client_payload.client || 'sparebox' }}-prod
 
     steps:
       - name: Resolve deploy vars
@@ -81,10 +81,10 @@ jobs:
             echo "env_file=${{ github.event.client_payload.env_file }}" >> $GITHUB_OUTPUT
             echo "site=${{ github.event.client_payload.site }}" >> $GITHUB_OUTPUT
           else
-            # Fallback for direct push to sparebox-stage
-            echo "compose_project=sparebox_stage" >> $GITHUB_OUTPUT
-            echo "env_file=secrets/sparebox_stage.env" >> $GITHUB_OUTPUT
-            echo "site=sparebox-stage.local" >> $GITHUB_OUTPUT
+            # Fallback for direct push to sparebox-prod
+            echo "compose_project=sparebox_prod" >> $GITHUB_OUTPUT
+            echo "env_file=secrets/sparebox_prod.env" >> $GITHUB_OUTPUT
+            echo "site=sparebox-prod.local" >> $GITHUB_OUTPUT
           fi
 
       - name: Deploy on AWS EC2
