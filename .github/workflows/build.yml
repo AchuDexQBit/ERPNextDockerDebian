@@ -7,6 +7,7 @@ on:
   repository_dispatch:
     types:
       - client-stage-deploy
+      - client-prod-deploy
 
 env:
   REGISTRY: ghcr.io
@@ -22,6 +23,7 @@ jobs:
     env:
       CLIENT_BRANCH: ${{ github.event_name == 'repository_dispatch' && github.event.client_payload.branch || github.ref_name }}
       CLIENT: ${{ github.event_name == 'repository_dispatch' && github.event.client_payload.client || '' }}
+      TARGET_ENV: ${{ github.event_name == 'repository_dispatch' && (github.event.action == 'client-prod-deploy' && 'prod' || 'stage') || (github.ref_name == 'sparebox-prod' && 'prod' || 'stage') }}
 
     steps:
       - name: Checkout client branch
@@ -61,16 +63,19 @@ jobs:
             DEPLOY_TARGET=ci
             CUSTOM_ERPNEXT_GITHUB_PATH=
             CUSTOM_WHITELIST_GITHUB_PATH=DexQBit/MLBR-Sparebox-BE
-            CUSTOM_WHITELIST_BRANCH=stage
+            CUSTOM_WHITELIST_BRANCH=${{ env.TARGET_ENV }}
             BENCH_INSTALL_APPS=sparebox_be
 
   deploy-aws:
     needs: build-and-push
     if: |
       github.event_name == 'repository_dispatch' ||
-      github.ref == 'refs/heads/sparebox-stage'
+      github.ref == 'refs/heads/sparebox-stage' ||
+      github.ref == 'refs/heads/sparebox-prod'
     runs-on: ubuntu-latest
-    environment: ${{ github.event_name == 'repository_dispatch' && github.event.client_payload.client || 'sparebox' }}-stage
+    env:
+      TARGET_ENV: ${{ github.event_name == 'repository_dispatch' && (github.event.action == 'client-prod-deploy' && 'prod' || 'stage') || (github.ref_name == 'sparebox-prod' && 'prod' || 'stage') }}
+    environment: ${{ (github.event_name == 'repository_dispatch' && github.event.client_payload.client || 'sparebox') }}-${{ github.event_name == 'repository_dispatch' && (github.event.action == 'client-prod-deploy' && 'prod' || 'stage') || (github.ref_name == 'sparebox-prod' && 'prod' || 'stage') }}
 
     steps:
       - name: Resolve deploy vars
@@ -80,8 +85,11 @@ jobs:
             echo "compose_project=${{ github.event.client_payload.compose_project }}" >> $GITHUB_OUTPUT
             echo "env_file=${{ github.event.client_payload.env_file }}" >> $GITHUB_OUTPUT
             echo "site=${{ github.event.client_payload.site }}" >> $GITHUB_OUTPUT
+          elif [ "${{ env.TARGET_ENV }}" = "prod" ]; then
+            echo "compose_project=sparebox_prod" >> $GITHUB_OUTPUT
+            echo "env_file=secrets/sparebox_prod.env" >> $GITHUB_OUTPUT
+            echo "site=sparebox-prod.local" >> $GITHUB_OUTPUT
           else
-            # Fallback for direct push to sparebox-stage
             echo "compose_project=sparebox_stage" >> $GITHUB_OUTPUT
             echo "env_file=secrets/sparebox_stage.env" >> $GITHUB_OUTPUT
             echo "site=sparebox-stage.local" >> $GITHUB_OUTPUT
