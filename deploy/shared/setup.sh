@@ -34,7 +34,7 @@ if [ -n "${RFP_DB_PASSWORD:-}" ]; then
     _NEW_SITE_DB_ARGS="${_NEW_SITE_DB_ARGS} --db-password ${RFP_DB_PASSWORD}"
 fi
 
-echo "-> Create new site with ERPNext (DB ${_RFP_DB_HOST}:${_RFP_DB_PORT})"
+echo "-> Create new site (DB ${_RFP_DB_HOST}:${_RFP_DB_PORT}; apps: ${BENCH_INSTALL_APPS:-none})"
 
 _remove_incomplete_site_dir() {
     _d="/home/frappe/bench/sites/${RFP_DOMAIN_NAME}"
@@ -47,14 +47,14 @@ _remove_incomplete_site_dir() {
 }
 
 _bench_new_site() {
+    # Frappe is always installed; BENCH_INSTALL_APPS are installed after new-site.
     su frappe -c "cd /home/frappe/bench && bench new-site ${RFP_DOMAIN_NAME} \
         --admin-password ${RFP_SITE_ADMIN_PASSWORD} \
         --db-host ${_RFP_DB_HOST} \
         --db-port ${_RFP_DB_PORT} \
         --mariadb-user-host-login-scope ${_RFP_MARIADB_SCOPE} \
         --db-root-password ${RFP_DB_ROOT_PASSWORD} \
-        ${_NEW_SITE_DB_ARGS} \
-        --install-app erpnext"
+        ${_NEW_SITE_DB_ARGS}"
 }
 
 # Frappe v15 default DB name is "_" + sha1(realpath(sites/<site>))[:16]. bench drop-site needs a site folder;
@@ -145,9 +145,14 @@ if [ "${_new_site_rc}" -ne 0 ]; then
     fi
 fi
 
-if [ -n "${BENCH_EXTRA_APPS:-}" ]; then
-    echo "-> Installing extra bench apps: ${BENCH_EXTRA_APPS}"
-    for app in ${BENCH_EXTRA_APPS}; do
+if [ -n "${BENCH_INSTALL_APPS:-}" ]; then
+    echo "-> Installing bench apps: ${BENCH_INSTALL_APPS}"
+    for app in ${BENCH_INSTALL_APPS}; do
+        if [ ! -d "/home/frappe/bench/apps/${app}" ]; then
+            echo "ERROR: app '${app}' is in BENCH_INSTALL_APPS but missing under /home/frappe/bench/apps/"
+            echo "ERROR: Include erpnext/payments in the list at build time, or set CUSTOM_WHITELIST_* for private apps."
+            exit 1
+        fi
         su frappe -c "cd /home/frappe/bench && bench --site ${RFP_DOMAIN_NAME} install-app ${app}"
     done
 fi

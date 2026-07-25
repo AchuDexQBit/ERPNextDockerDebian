@@ -15,6 +15,7 @@ services:
         CUSTOM_ERPNEXT_GITHUB_PATH: ${CUSTOM_ERPNEXT_GITHUB_PATH:-DexQBit/erpnext}
         CUSTOM_WHITELIST_GITHUB_PATH: ${CUSTOM_WHITELIST_GITHUB_PATH:-}
         CUSTOM_WHITELIST_BRANCH: ${CUSTOM_WHITELIST_BRANCH:-prod}
+        BENCH_INSTALL_APPS: ${BENCH_INSTALL_APPS:-erpnext}
         DEPLOY_TARGET: hetzner
     image: ${ERPNext_IMAGE_NAME:-erpnext-hetzner}:local
     ports:

@@ -18,17 +18,28 @@ ARG CUSTOM_ERPNEXT_BRANCH=prod
 ARG CUSTOM_ERPNEXT_GITHUB_PATH=DexQBit/erpnext
 ARG CUSTOM_WHITELIST_GITHUB_PATH=
 ARG CUSTOM_WHITELIST_BRANCH=prod
+# Space-separated: erpnext / payments / custom app folder names. Default erpnext for existing clients.
+ARG BENCH_INSTALL_APPS=erpnext
 
-RUN echo "-> Start builder" \
+RUN echo "-> Start builder (BENCH_INSTALL_APPS=${BENCH_INSTALL_APPS})" \
     && rm -rf /home/$systemUser/$benchFolderName/sites/site1.local \
     && bench remove-app erpnext --no-backup || true \
     && bench remove-app payments --no-backup || true \
     && rm -rf /home/$systemUser/$benchFolderName/apps/erpnext \
     && rm -rf /home/$systemUser/$benchFolderName/apps/payments \
-    && bench get-app --branch version-15 https://github.com/frappe/payments \
-    && bench get-app --branch ${CUSTOM_ERPNEXT_BRANCH} https://${GITHUB_PAT_TOKEN}@github.com/${CUSTOM_ERPNEXT_GITHUB_PATH} \
+    && case " ${BENCH_INSTALL_APPS} " in \
+         *" payments "*) \
+           echo "-> get-app payments" \
+           && bench get-app --branch version-15 https://github.com/frappe/payments ;; \
+       esac \
+    && case " ${BENCH_INSTALL_APPS} " in \
+         *" erpnext "*) \
+           echo "-> get-app erpnext from ${CUSTOM_ERPNEXT_GITHUB_PATH}@${CUSTOM_ERPNEXT_BRANCH}" \
+           && bench get-app --branch ${CUSTOM_ERPNEXT_BRANCH} https://${GITHUB_PAT_TOKEN}@github.com/${CUSTOM_ERPNEXT_GITHUB_PATH} ;; \
+       esac \
     && if [ -n "${CUSTOM_WHITELIST_GITHUB_PATH}" ]; then \
-         bench get-app --branch ${CUSTOM_WHITELIST_BRANCH} https://${GITHUB_PAT_TOKEN}@github.com/${CUSTOM_WHITELIST_GITHUB_PATH}; \
+         echo "-> get-app whitelist ${CUSTOM_WHITELIST_GITHUB_PATH}@${CUSTOM_WHITELIST_BRANCH}" \
+         && bench get-app --branch ${CUSTOM_WHITELIST_BRANCH} https://${GITHUB_PAT_TOKEN}@github.com/${CUSTOM_WHITELIST_GITHUB_PATH}; \
        fi \
     && echo "-> Builder done!"
 
@@ -50,10 +61,9 @@ WORKDIR /home/$systemUser/$benchFolderName
 
 ARG DEBIAN_FRONTEND=noninteractive
 ARG DEPLOY_TARGET=generic
-# Space-separated app names for `bench install-app` on first boot (must exist under bench/apps from the builder). Empty = ERPNext only.
-# Set per client branch or pass build-arg / env_file. Server env_file overrides ENV when set.
-ARG BENCH_EXTRA_APPS=""
-ENV BENCH_EXTRA_APPS="${BENCH_EXTRA_APPS}"
+# Same list as builder; used by setup.sh on first boot. Env file can override at runtime.
+ARG BENCH_INSTALL_APPS=erpnext
+ENV BENCH_INSTALL_APPS="${BENCH_INSTALL_APPS}"
 
 LABEL org.opencontainers.image.source="https://github.com/DexQBit/erpnext"
 LABEL deploy.target="${DEPLOY_TARGET}"

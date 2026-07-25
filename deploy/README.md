@@ -47,7 +47,7 @@ The same client usually has **three branches** if you run all tiers; each branch
    cp deploy/client.env.example deploy/client.env
    ```
 
-   Edit `deploy/client.env`: for **GHCR deploy**, set **`GHCR_IMAGE=ghcr.io/<owner>/erpnext-<branch>:latest`** (same branch CI built) plus runtime fields (`RFP_*`, passwords). **`BENCH_EXTRA_APPS`** is optional if your branch’s Dockerfile bakes the list. Build-arg fields (`GITHUB_PAT_TOKEN`, `CUSTOM_*`) matter in **CI**, not on the VPS when you only pull. Reference: [`deploy/client.env.example`](./client.env.example).
+   Edit `deploy/client.env`: for **GHCR deploy**, set **`GHCR_IMAGE=ghcr.io/<owner>/erpnext-<branch>:latest`** (same branch CI built) plus runtime fields (`RFP_*`, passwords). **`BENCH_INSTALL_APPS`** should match what CI baked (or override at runtime). Build-arg fields (`GITHUB_PAT_TOKEN`, `CUSTOM_*`) matter in **CI**, not on the VPS when you only pull. Reference: [`deploy/client.env.example`](./client.env.example).
 
 5. **Deploy (Hetzner or AWS — GHCR)**
    - Install Docker + Compose on the VPS; **`docker login ghcr.io`** (PAT with **`read:packages`**).
@@ -70,7 +70,7 @@ The same client usually has **three branches** if you run all tiers; each branch
 On the server you can keep **two files** in one directory (e.g. `~/deploy/`): a copy of [`compose.ghcr.yml`](./compose.ghcr.yml) as `compose.yml`, and your env file (e.g. `secrets/dqb_distributors.env`) with **`CLIENT_ENV_FILE`** pointing at that path.
 
 - **Once:** `echo <PAT> | docker login ghcr.io -u <github_user> --password-stdin` (PAT needs **`read:packages`**).
-- **Apps:** `bench get-app` runs in **CI** for ERPNext (fork), optional whitelist, and any extra lines you add to the Dockerfile. **`BENCH_EXTRA_APPS`** defaults to **empty** (ERPNext only on the site); set **`ARG BENCH_EXTRA_APPS="app1 app2"`** on a branch or in the env file so first boot runs `bench install-app` for each (names must match folders under `bench/apps/`).
+- **Apps:** Set **`BENCH_INSTALL_APPS`** (space-separated) at **build** and/or in the env file. Names **`erpnext`** / **`payments`** are cloned only if listed; private apps need **`CUSTOM_WHITELIST_*`** plus their folder name in the list (e.g. `sparebox_be`). Empty = Frappe only. Default bake is **`erpnext`**.
 - **Updates:** `docker compose -p … pull && docker compose -p … up -d` pulls **`latest`** because of **`pull_policy: always`** on ERPNext.
 - **`docker compose … down -v` deletes all volumes** (MariaDB + `frappe_sites`). Use that only for a **full reset**; for normal redeploys omit **`-v`**.
 
@@ -91,35 +91,52 @@ docker compose -p dqb_distributors -f compose.yml --env-file secrets/dqb_distrib
 | Shared image definition                      | `deploy/shared/Dockerfile` (+ scripts and nginx/supervisor templates in `deploy/shared/`)                                    |
 | Client + env **code/config** in Git          | Branch `<client_name>-<env>` (optional edits to Dockerfile, compose files, defaults)                                         |
 | Client-specific **secrets**                  | `deploy/client.env` on the server (gitignored), or GitHub Actions secrets / Environments                                     |
-| Apps **cloned into the image**               | `bench get-app` in the Dockerfile **builder** stage (`GITHUB_PAT_TOKEN`, `CUSTOM_ERPNEXT_*`, `CUSTOM_WHITELIST_*`)           |
-| Apps **installed on the site** at first boot | Optional **`BENCH_EXTRA_APPS`** (Dockerfile `ARG`/`ENV` or env file); default **none** besides ERPNext from `bench new-site` |
+| Apps **cloned into the image**               | `bench get-app` in the Dockerfile **builder**: `erpnext`/`payments` only if in **`BENCH_INSTALL_APPS`**; optional `CUSTOM_WHITELIST_*` |
+| Apps **installed on the site** at first boot | **`BENCH_INSTALL_APPS`** (Dockerfile `ARG`/`ENV` or env file); empty = Frappe only; default bake **`erpnext`** |
 
-### Example: Payments + HRMS + one private (whitelist) app
+### Choosing apps (`BENCH_INSTALL_APPS`)
 
-Everything you want on the site must be **cloned during the image build** (`bench get-app` in [`deploy/shared/Dockerfile`](./shared/Dockerfile)), then **installed on the new site** at runtime via **`BENCH_EXTRA_APPS`** (`bench install-app` in [`deploy/shared/setup.sh`](./shared/setup.sh)).
+One space-separated list controls **clone** (for `erpnext` / `payments`) and **site install** (`bench install-app` in [`setup.sh`](./shared/setup.sh)). Frappe is always present.
 
-1. **Payments** — Already cloned in the Dockerfile from `https://github.com/frappe/payments` (`version-15`). You only need to **install** it on the site:
+| Value | Effect |
+| --- | --- |
+| `erpnext` | Clone fork via `CUSTOM_ERPNEXT_*`, install ERPNext |
+| `payments` | Clone frappe/payments, install payments |
+| `sparebox_be` (example) | Install custom app; must be cloned via `CUSTOM_WHITELIST_GITHUB_PATH=DexQBit/MLBR-Sparebox-BE` |
+| empty | Frappe-only site |
 
-   `BENCH_EXTRA_APPS=payments …`
+**Sparebox (custom Frappe app, no ERPNext):**
+
+```
+CUSTOM_WHITELIST_GITHUB_PATH=DexQBit/MLBR-Sparebox-BE
+CUSTOM_WHITELIST_BRANCH=prod   # or stage
+BENCH_INSTALL_APPS=sparebox_be
+```
+
+### Example: ERPNext + Payments + HRMS + one private app
+
+Everything on the site must be **cloned during the image build**, then listed in **`BENCH_INSTALL_APPS`**.
+
+1. **ERPNext + Payments** — include both names (cloned automatically when listed):
+
+   `BENCH_INSTALL_APPS=erpnext payments …`
 
 2. **HRMS** — Not cloned by default. On the branch for that client, add a line in the **builder** stage of `deploy/shared/Dockerfile` next to the other `bench get-app` calls, for example:
 
    `bench get-app --branch version-15 https://github.com/frappe/hrms`
 
-   (Use the branch that matches your ERPNext/Frappe version.) Rebuild the image. Then include the app **name** Frappe expects (the folder under `apps/`, usually `hrms`):
+   Then include the folder name:
 
-   `BENCH_EXTRA_APPS=payments hrms …`
+   `BENCH_INSTALL_APPS=erpnext payments hrms …`
 
-3. **Private / whitelist app** — Set build args in `deploy/client.env` (passed through Compose as build args):
-   - `CUSTOM_WHITELIST_GITHUB_PATH=YourOrg/your-private-app` (owner/repo only, same rules as `CUSTOM_ERPNEXT_GITHUB_PATH`)
-   - `CUSTOM_WHITELIST_BRANCH=main` (or your release branch)
+3. **Private / whitelist app** — Set build args:
+   - `CUSTOM_WHITELIST_GITHUB_PATH=YourOrg/your-private-app`
+   - `CUSTOM_WHITELIST_BRANCH=main`
    - `GITHUB_PAT_TOKEN` must allow that repo
 
-   The app’s **install name** is the Python package / app folder name in that repo (e.g. `my_company_app`). Add it to `BENCH_EXTRA_APPS`:
+   Add the app folder name to the list:
 
-   `BENCH_EXTRA_APPS=payments hrms my_company_app`
-
-Order in `BENCH_EXTRA_APPS` does not need to match install order for most apps; list every app you want installed besides ERPNext (ERPNext is already installed by `bench new-site --install-app erpnext`).
+   `BENCH_INSTALL_APPS=erpnext payments hrms my_company_app`
 
 ---
 
@@ -176,13 +193,14 @@ Edit `deploy/client.env` for that client **and** environment (e.g. different val
 - `RFP_RECOVER_ORPHAN_SITE` — set to **`true`** only once if **`bench new-site`** fails with **already exists** while **`site_config.json`** is missing (orphaned DB on MariaDB). Recovery uses **`bench drop-site`** when the site folder exists; otherwise it **`DROP DATABASE`** / **`DROP USER`** using the same DB name Frappe v15 derives (`_` + SHA1 of `realpath(sites/<RFP_DOMAIN_NAME>)`), or **`RFP_DB_NAME`** if you set that for `new-site`. Remove after a successful boot.
 - `RFP_MARIADB_USER_HOST_LOGIN_SCOPE` — optional; default `%` (replaces deprecated `--no-mariadb-socket` for remote TCP)
 - `RFP_REDIS_URL` or `RFP_REDIS_CACHE_URL` / `RFP_REDIS_QUEUE_URL` / `RFP_REDIS_SOCKETIO_URL` — written to `common_site_config.json` on first boot; default compose provides **`redis`**, so **`redis://redis:6379`** is typical (override for external Redis)
-- `BENCH_EXTRA_APPS` — optional; default **empty** in the image. Set in the Dockerfile **`ARG`** on a branch and/or in this file to install extra apps after ERPNext
+- `BENCH_INSTALL_APPS` — space-separated apps to install on first boot (and to clone `erpnext`/`payments` at build). Default bake **`erpnext`**. Sparebox: `sparebox_be` (with whitelist). Empty = Frappe only.
 
 **Build-time (CI and optional on-VPS `docker compose --build`):**
 
 - `GITHUB_PAT_TOKEN` — PAT for private `bench get-app` during the image build
-- `CUSTOM_ERPNEXT_GITHUB_PATH`, `CUSTOM_ERPNEXT_BRANCH`
+- `CUSTOM_ERPNEXT_GITHUB_PATH`, `CUSTOM_ERPNEXT_BRANCH` (only needed when `erpnext` is in `BENCH_INSTALL_APPS`)
 - `CUSTOM_WHITELIST_GITHUB_PATH`, `CUSTOM_WHITELIST_BRANCH` (if used)
+- `BENCH_INSTALL_APPS` — same list as runtime (must be a build-arg so the image clones the right apps)
 
 For **§4 GHCR deploy on the VPS**, you only need **runtime** vars plus **`GHCR_IMAGE`** in `deploy/client.env`; the build-time lines can be omitted there (they still apply in GitHub Actions when the image is built).
 

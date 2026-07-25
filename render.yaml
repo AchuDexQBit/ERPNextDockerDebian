@@ -54,8 +54,8 @@ services:
         value: ""
       - key: CUSTOM_WHITELIST_BRANCH
         value: prod
-      - key: BENCH_EXTRA_APPS
-        value: ""
+      - key: BENCH_INSTALL_APPS
+        value: erpnext
       - key: RFP_DOMAIN_NAME
         sync: false
       - key: RFP_PUBLIC_URL

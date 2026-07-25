@@ -61,7 +61,6 @@ jobs:
           build-args: |
             GITHUB_PAT_TOKEN=${{ secrets.CUSTOMISATION_TOKEN }}
             DEPLOY_TARGET=ci
-            CUSTOM_ERPNEXT_BRANCH=${{ env.TARGET_ENV }}
             CUSTOM_WHITELIST_GITHUB_PATH=DexQBit/MLBR-Sparebox-BE
             CUSTOM_WHITELIST_BRANCH=${{ env.TARGET_ENV }}
             BENCH_INSTALL_APPS=sparebox_be
