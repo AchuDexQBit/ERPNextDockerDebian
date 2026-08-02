@@ -2,6 +2,8 @@
 
 Build and push a client ERPNext image to GHCR from a `repository_dispatch` event. Deploy is manual.
 
+CI always checks out this repo’s **`prod`** branch. Clients are distinguished by `client` in the payload and the event type (`stage` / `prod`).
+
 ## Prerequisites
 
 - A GitHub PAT with **`repo`** scope (to call the dispatches API).
@@ -14,13 +16,13 @@ Build and push a client ERPNext image to GHCR from a `repository_dispatch` event
 | `client-stage-deploy` | Build + push; `CUSTOM_WHITELIST_BRANCH=stage` |
 | `client-prod-deploy` | Build + push; `CUSTOM_WHITELIST_BRANCH=prod` |
 
-Image tag: `ghcr.io/dexqbit/erpnext-{branch}:latest`
+Image tag: `ghcr.io/dexqbit/erpnext-{client}-{stage|prod}:latest`
 
 ## Required `client_payload` fields
 
 | Field | Purpose |
 | --- | --- |
-| `branch` | Checkout ref + image tag suffix |
+| `client` | Client slug used in the image tag (e.g. `sparebox`) |
 | `whitelist_github_path` | Private app `owner/repo` (e.g. `DexQBit/MLBR-Sparebox-BE`) |
 | `bench_install_apps` | Space-separated apps to bake/install (e.g. `sparebox_be`) |
 
@@ -34,12 +36,14 @@ curl -i -X POST \
   -d '{
     "event_type": "client-stage-deploy",
     "client_payload": {
-      "branch": "sparebox-stage",
+      "client": "sparebox",
       "whitelist_github_path": "DexQBit/MLBR-Sparebox-BE",
       "bench_install_apps": "sparebox_be"
     }
   }'
 ```
+
+Produces: `ghcr.io/dexqbit/erpnext-sparebox-stage:latest`
 
 ## Prod
 
@@ -51,12 +55,14 @@ curl -i -X POST \
   -d '{
     "event_type": "client-prod-deploy",
     "client_payload": {
-      "branch": "sparebox-prod",
+      "client": "sparebox",
       "whitelist_github_path": "DexQBit/MLBR-Sparebox-BE",
       "bench_install_apps": "sparebox_be"
     }
   }'
 ```
+
+Produces: `ghcr.io/dexqbit/erpnext-sparebox-prod:latest`
 
 Replace `PAT` with your token. Swap payload values for other clients.
 
