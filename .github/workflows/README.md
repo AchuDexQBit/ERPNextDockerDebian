@@ -24,7 +24,7 @@ Image tag: `ghcr.io/dexqbit/erpnext-{client}-{stage|prod}:latest`
 | --- | --- |
 | `client` | Client slug used in the image tag (e.g. `sparebox`) |
 | `whitelist_github_path` | Private app `owner/repo` (e.g. `DexQBit/MLBR-Sparebox-BE`) |
-| `bench_install_apps` | Space-separated apps to bake/install (e.g. `sparebox_be`) |
+| `bench_install_apps` | Space-separated apps to bake/install. Include `erpnext` when the client needs it (e.g. `erpnext erpnext_app_dexi`). Sparebox-style Frappe-only: `sparebox_be` |
 
 ## Stage
 
@@ -63,6 +63,25 @@ curl -i -X POST \
 ```
 
 Produces: `ghcr.io/dexqbit/erpnext-sparebox-prod:latest`
+
+### Dexi (needs ERPNext)
+
+```bash
+curl -i -X POST \
+  -H "Authorization: token PAT" \
+  -H "Accept: application/vnd.github+json" \
+  https://api.github.com/repos/DexQBit/ERPNextDockerDebian/dispatches \
+  -d '{
+    "event_type": "client-stage-deploy",
+    "client_payload": {
+      "client": "dexi",
+      "whitelist_github_path": "DexQBit/erpnext_app_dexi",
+      "bench_install_apps": "erpnext erpnext_app_dexi"
+    }
+  }'
+```
+
+`erpnext` is cloned from `DexQBit/erpnext@prod` (Dockerfile defaults). The whitelist app uses branch `stage` or `prod` from the event type.
 
 Replace `PAT` with your token. Swap payload values for other clients.
 
