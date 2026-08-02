@@ -1,9 +1,6 @@
 name: Build and Push Client Image
 
 on:
-  push:
-    branches:
-      - "**"
   repository_dispatch:
     types:
       - client-stage-deploy
@@ -21,11 +18,35 @@ jobs:
       packages: write
 
     env:
-      CLIENT_BRANCH: ${{ github.event_name == 'repository_dispatch' && github.event.client_payload.branch || github.ref_name }}
-      CLIENT: ${{ github.event_name == 'repository_dispatch' && github.event.client_payload.client || '' }}
-      TARGET_ENV: ${{ github.event_name == 'repository_dispatch' && (github.event.action == 'client-prod-deploy' && 'prod' || 'stage') || (github.ref_name == 'sparebox-prod' && 'prod' || 'stage') }}
+      CLIENT_BRANCH: ${{ github.event.client_payload.branch }}
+      CLIENT: ${{ github.event.client_payload.client }}
+      TARGET_ENV: ${{ github.event.action == 'client-prod-deploy' && 'prod' || 'stage' }}
+      WHITELIST_GITHUB_PATH: ${{ github.event.client_payload.whitelist_github_path }}
+      BENCH_INSTALL_APPS: ${{ github.event.client_payload.bench_install_apps }}
 
     steps:
+      - name: Validate client_payload
+        run: |
+          missing=
+          for pair in \
+            "client=${{ env.CLIENT }}" \
+            "branch=${{ env.CLIENT_BRANCH }}" \
+            "whitelist_github_path=${{ env.WHITELIST_GITHUB_PATH }}" \
+            "bench_install_apps=${{ env.BENCH_INSTALL_APPS }}" \
+            "site=${{ github.event.client_payload.site }}" \
+            "env_file=${{ github.event.client_payload.env_file }}" \
+            "compose_project=${{ github.event.client_payload.compose_project }}"; do
+            key="${pair%%=*}"
+            val="${pair#*=}"
+            if [ -z "$val" ]; then
+              echo "::error::client_payload.$key is required"
+              missing=1
+            fi
+          done
+          if [ -n "$missing" ]; then
+            exit 1
+          fi
+
       - name: Checkout client branch
         uses: actions/checkout@v4
         with:
@@ -61,37 +82,25 @@ jobs:
           build-args: |
             GITHUB_PAT_TOKEN=${{ secrets.CUSTOMISATION_TOKEN }}
             DEPLOY_TARGET=ci
-            CUSTOM_WHITELIST_GITHUB_PATH=DexQBit/MLBR-Sparebox-BE
+            CUSTOM_WHITELIST_GITHUB_PATH=${{ env.WHITELIST_GITHUB_PATH }}
             CUSTOM_WHITELIST_BRANCH=${{ env.TARGET_ENV }}
-            BENCH_INSTALL_APPS=sparebox_be
+            BENCH_INSTALL_APPS=${{ env.BENCH_INSTALL_APPS }}
 
   deploy-aws:
     needs: build-and-push
-    if: |
-      (github.event_name == 'repository_dispatch' && github.event.action != 'client-prod-deploy') ||
-      github.ref == 'refs/heads/sparebox-stage'
+    if: github.event.action != 'client-prod-deploy'
     runs-on: ubuntu-latest
     env:
-      TARGET_ENV: ${{ github.event_name == 'repository_dispatch' && (github.event.action == 'client-prod-deploy' && 'prod' || 'stage') || (github.ref_name == 'sparebox-prod' && 'prod' || 'stage') }}
-    environment: ${{ (github.event_name == 'repository_dispatch' && github.event.client_payload.client || 'sparebox') }}-${{ github.event_name == 'repository_dispatch' && (github.event.action == 'client-prod-deploy' && 'prod' || 'stage') || (github.ref_name == 'sparebox-prod' && 'prod' || 'stage') }}
+      TARGET_ENV: ${{ github.event.action == 'client-prod-deploy' && 'prod' || 'stage' }}
+    environment: ${{ github.event.client_payload.client }}-${{ github.event.action == 'client-prod-deploy' && 'prod' || 'stage' }}
 
     steps:
       - name: Resolve deploy vars
         id: vars
         run: |
-          if [ "${{ github.event_name }}" = "repository_dispatch" ]; then
-            echo "compose_project=${{ github.event.client_payload.compose_project }}" >> $GITHUB_OUTPUT
-            echo "env_file=${{ github.event.client_payload.env_file }}" >> $GITHUB_OUTPUT
-            echo "site=${{ github.event.client_payload.site }}" >> $GITHUB_OUTPUT
-          elif [ "${{ env.TARGET_ENV }}" = "prod" ]; then
-            echo "compose_project=sparebox_prod" >> $GITHUB_OUTPUT
-            echo "env_file=secrets/sparebox_prod.env" >> $GITHUB_OUTPUT
-            echo "site=sparebox-prod.local" >> $GITHUB_OUTPUT
-          else
-            echo "compose_project=sparebox_stage" >> $GITHUB_OUTPUT
-            echo "env_file=secrets/sparebox_stage.env" >> $GITHUB_OUTPUT
-            echo "site=sparebox-stage.local" >> $GITHUB_OUTPUT
-          fi
+          echo "compose_project=${{ github.event.client_payload.compose_project }}" >> $GITHUB_OUTPUT
+          echo "env_file=${{ github.event.client_payload.env_file }}" >> $GITHUB_OUTPUT
+          echo "site=${{ github.event.client_payload.site }}" >> $GITHUB_OUTPUT
 
       - name: Deploy on AWS EC2
         uses: appleboy/ssh-action@v1.2.0
