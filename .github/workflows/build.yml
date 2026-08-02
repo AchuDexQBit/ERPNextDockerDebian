@@ -19,7 +19,6 @@ jobs:
 
     env:
       CLIENT_BRANCH: ${{ github.event.client_payload.branch }}
-      CLIENT: ${{ github.event.client_payload.client }}
       TARGET_ENV: ${{ github.event.action == 'client-prod-deploy' && 'prod' || 'stage' }}
       WHITELIST_GITHUB_PATH: ${{ github.event.client_payload.whitelist_github_path }}
       BENCH_INSTALL_APPS: ${{ github.event.client_payload.bench_install_apps }}
@@ -29,13 +28,9 @@ jobs:
         run: |
           missing=
           for pair in \
-            "client=${{ env.CLIENT }}" \
             "branch=${{ env.CLIENT_BRANCH }}" \
             "whitelist_github_path=${{ env.WHITELIST_GITHUB_PATH }}" \
-            "bench_install_apps=${{ env.BENCH_INSTALL_APPS }}" \
-            "site=${{ github.event.client_payload.site }}" \
-            "env_file=${{ github.event.client_payload.env_file }}" \
-            "compose_project=${{ github.event.client_payload.compose_project }}"; do
+            "bench_install_apps=${{ env.BENCH_INSTALL_APPS }}"; do
             key="${pair%%=*}"
             val="${pair#*=}"
             if [ -z "$val" ]; then
@@ -85,37 +80,3 @@ jobs:
             CUSTOM_WHITELIST_GITHUB_PATH=${{ env.WHITELIST_GITHUB_PATH }}
             CUSTOM_WHITELIST_BRANCH=${{ env.TARGET_ENV }}
             BENCH_INSTALL_APPS=${{ env.BENCH_INSTALL_APPS }}
-
-  deploy-aws:
-    needs: build-and-push
-    if: github.event.action != 'client-prod-deploy'
-    runs-on: ubuntu-latest
-    env:
-      TARGET_ENV: ${{ github.event.action == 'client-prod-deploy' && 'prod' || 'stage' }}
-    environment: ${{ github.event.client_payload.client }}-${{ github.event.action == 'client-prod-deploy' && 'prod' || 'stage' }}
-
-    steps:
-      - name: Resolve deploy vars
-        id: vars
-        run: |
-          echo "compose_project=${{ github.event.client_payload.compose_project }}" >> $GITHUB_OUTPUT
-          echo "env_file=${{ github.event.client_payload.env_file }}" >> $GITHUB_OUTPUT
-          echo "site=${{ github.event.client_payload.site }}" >> $GITHUB_OUTPUT
-
-      - name: Deploy on AWS EC2
-        uses: appleboy/ssh-action@v1.2.0
-        with:
-          host: ${{ secrets.AWS_EC2_HOST }}
-          username: ${{ secrets.AWS_EC2_USER }}
-          key: ${{ secrets.AWS_EC2_SSH_KEY }}
-          script_stop: true
-          script: |
-            set -e
-            cd /home/ubuntu/deploy
-            docker image prune -a -f
-            docker compose -p ${{ steps.vars.outputs.compose_project }} -f compose.yml --env-file ${{ steps.vars.outputs.env_file }} down
-            docker compose -p ${{ steps.vars.outputs.compose_project }} -f compose.yml --env-file ${{ steps.vars.outputs.env_file }} pull
-            docker compose -p ${{ steps.vars.outputs.compose_project }} -f compose.yml --env-file ${{ steps.vars.outputs.env_file }} up -d
-            docker compose -p ${{ steps.vars.outputs.compose_project }} -f compose.yml --env-file ${{ steps.vars.outputs.env_file }} exec --user frappe erpnext bash -c "bench --site ${{ steps.vars.outputs.site }} migrate"
-            docker compose -p ${{ steps.vars.outputs.compose_project }} -f compose.yml --env-file ${{ steps.vars.outputs.env_file }} exec --user frappe erpnext bash -c "bench build"
-            docker compose -p ${{ steps.vars.outputs.compose_project }} -f compose.yml --env-file ${{ steps.vars.outputs.env_file }} exec --user frappe erpnext bash -c "bench --site ${{ steps.vars.outputs.site }} clear-cache"
