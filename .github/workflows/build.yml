@@ -23,6 +23,9 @@ jobs:
       TARGET_ENV: ${{ github.event.action == 'client-prod-deploy' && 'prod' || 'stage' }}
       WHITELIST_GITHUB_PATH: ${{ github.event.client_payload.whitelist_github_path }}
       BENCH_INSTALL_APPS: ${{ github.event.client_payload.bench_install_apps }}
+      PIPECH_IMAGE_TAG: ${{ github.event.client_payload.pipech_image_tag || 'version-15-latest' }}
+      FRAPPE_APPS_BRANCH: ${{ github.event.client_payload.frappe_apps_branch || 'version-15' }}
+      ERPNEXT_BRANCH: ${{ github.event.client_payload.erpnext_branch || 'prod' }}
 
     steps:
       - name: Validate client_payload
@@ -53,6 +56,9 @@ jobs:
         run: |
           IMAGE_TAG="${{ env.IMAGE_PREFIX }}-${{ env.CLIENT }}-${{ env.TARGET_ENV }}:latest"
           echo "image_tag=${IMAGE_TAG}" >> $GITHUB_OUTPUT
+          echo "pipech_image_tag=${{ env.PIPECH_IMAGE_TAG }}"
+          echo "frappe_apps_branch=${{ env.FRAPPE_APPS_BRANCH }}"
+          echo "erpnext_branch=${{ env.ERPNEXT_BRANCH }}"
 
       - name: Require PAT for private bench get-app
         run: |
@@ -78,6 +84,9 @@ jobs:
           build-args: |
             GITHUB_PAT_TOKEN=${{ secrets.CUSTOMISATION_TOKEN }}
             DEPLOY_TARGET=ci
+            PIPECH_IMAGE_TAG=${{ env.PIPECH_IMAGE_TAG }}
+            FRAPPE_APPS_BRANCH=${{ env.FRAPPE_APPS_BRANCH }}
+            CUSTOM_ERPNEXT_BRANCH=${{ env.ERPNEXT_BRANCH }}
             CUSTOM_WHITELIST_GITHUB_PATH=${{ env.WHITELIST_GITHUB_PATH }}
             CUSTOM_WHITELIST_BRANCH=${{ env.TARGET_ENV }}
             BENCH_INSTALL_APPS=${{ env.BENCH_INSTALL_APPS }}

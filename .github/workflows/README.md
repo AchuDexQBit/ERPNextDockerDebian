@@ -2,31 +2,39 @@
 
 Build and push a client ERPNext image to GHCR from a `repository_dispatch` event. Deploy is manual.
 
-CI always checks out this repo’s **`prod`** branch. Clients are distinguished by `client` in the payload and the event type (`stage` / `prod`).
+CI always checks out this repo’s `**prod**` branch. Clients are distinguished by `client` in the payload and the event type (`stage` / `prod`).
 
 ## Prerequisites
 
-- A GitHub PAT with **`repo`** scope (to call the dispatches API).
-- Repository secret **`CUSTOMISATION_TOKEN`** — PAT that can clone private app repos (`bench get-app`).
+- A GitHub PAT with `**repo**` scope (to call the dispatches API).
+- Repository secret `**CUSTOMISATION_TOKEN**` — PAT that can clone private app repos (`bench get-app`).
 
 ## Event types
 
-| `event_type` | Effect |
-| --- | --- |
+| `event_type`          | Effect                                        |
+| --------------------- | --------------------------------------------- |
 | `client-stage-deploy` | Build + push; `CUSTOM_WHITELIST_BRANCH=stage` |
-| `client-prod-deploy` | Build + push; `CUSTOM_WHITELIST_BRANCH=prod` |
+| `client-prod-deploy`  | Build + push; `CUSTOM_WHITELIST_BRANCH=prod`  |
 
 Image tag: `ghcr.io/dexqbit/erpnext-{client}-{stage|prod}:latest`
 
 ## Required `client_payload` fields
 
-| Field | Purpose |
-| --- | --- |
-| `client` | Client slug used in the image tag (e.g. `sparebox`) |
-| `whitelist_github_path` | Private app `owner/repo` (e.g. `DexQBit/MLBR-Sparebox-BE`) |
-| `bench_install_apps` | Space-separated apps to bake/install. Include `erpnext` when the client needs it (e.g. `erpnext erpnext_app_dexi`). Sparebox-style Frappe-only: `sparebox_be` |
+| Field                   | Purpose                                                                                               |
+| ----------------------- | ----------------------------------------------------------------------------------------------------- |
+| `client`                | Client slug used in the image tag (e.g. `sparebox`)                                                   |
+| `whitelist_github_path` | Private app `owner/repo` (e.g. `DexQBit/MLBR-Sparebox-BE`)                                            |
+| `bench_install_apps`    | Space-separated apps to bake/install (`erpnext`, `payments`, `hrms`, `crm`, plus custom folder names) |
 
-## Stage
+## Optional version fields (defaults keep v15 behaviour)
+
+| Field                | Default             | Purpose                                                               |
+| -------------------- | ------------------- | --------------------------------------------------------------------- |
+| `pipech_image_tag`   | `version-15-latest` | Builder base: `pipech/erpnext-docker-debian:{tag}`                    |
+| `frappe_apps_branch` | `version-15`        | Branch for official `frappe/payments`, `frappe/hrms`, `frappe/crm`    |
+| `erpnext_branch`     | `prod`              | Branch on `DexQBit/erpnext` when `erpnext` is in `bench_install_apps` |
+
+## Stage (Sparebox / v15 defaults)
 
 ```bash
 curl -i -X POST \
@@ -45,7 +53,7 @@ curl -i -X POST \
 
 Produces: `ghcr.io/dexqbit/erpnext-sparebox-stage:latest`
 
-## Prod
+## Prod (Sparebox)
 
 ```bash
 curl -i -X POST \
@@ -64,7 +72,7 @@ curl -i -X POST \
 
 Produces: `ghcr.io/dexqbit/erpnext-sparebox-prod:latest`
 
-### Dexi (needs ERPNext)
+## Dexi (v16 + HRMS + CRM)
 
 ```bash
 curl -i -X POST \
@@ -76,12 +84,18 @@ curl -i -X POST \
     "client_payload": {
       "client": "dexi",
       "whitelist_github_path": "DexQBit/erpnext_app_dexi",
-      "bench_install_apps": "erpnext erpnext_app_dexi"
+      "bench_install_apps": "erpnext hrms crm erpnext_app_dexi",
+      "pipech_image_tag": "version-16-latest",
+      "frappe_apps_branch": "version-16",
+      "erpnext_branch": "version-16"
     }
   }'
 ```
 
-`erpnext` is cloned from `DexQBit/erpnext@prod` (Dockerfile defaults). The whitelist app uses branch `stage` or `prod` from the event type.
+- Base image: `pipech/erpnext-docker-debian:version-16-latest`
+- ERPNext: `DexQBit/erpnext@version-16`
+- HRMS / CRM: official `frappe/hrms` and `frappe/crm` `@version-16`
+- Whitelist app: `DexQBit/erpnext_app_dexi` at `stage` or `prod` from the event type
 
 Replace `PAT` with your token. Swap payload values for other clients.
 

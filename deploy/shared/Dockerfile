@@ -8,7 +8,8 @@
 # ------------------------------------------
 # - Stage: 01 - builder
 # ------------------------------------------
-FROM pipech/erpnext-docker-debian:version-15-latest AS builder
+ARG PIPECH_IMAGE_TAG=version-15-latest
+FROM pipech/erpnext-docker-debian:${PIPECH_IMAGE_TAG} AS builder
 
 USER $systemUser
 WORKDIR /home/$systemUser/$benchFolderName
@@ -18,10 +19,12 @@ ARG CUSTOM_ERPNEXT_BRANCH=prod
 ARG CUSTOM_ERPNEXT_GITHUB_PATH=DexQBit/erpnext
 ARG CUSTOM_WHITELIST_GITHUB_PATH=
 ARG CUSTOM_WHITELIST_BRANCH=prod
-# Space-separated: erpnext / payments / custom app folder names. Default erpnext for existing clients.
+# Official frappe/* apps (payments, hrms, crm): e.g. version-15 / version-16
+ARG FRAPPE_APPS_BRANCH=version-15
+# Space-separated: erpnext / payments / hrms / crm / custom app folder names.
 ARG BENCH_INSTALL_APPS=erpnext
 
-RUN echo "-> Start builder (BENCH_INSTALL_APPS=${BENCH_INSTALL_APPS})" \
+RUN echo "-> Start builder (BENCH_INSTALL_APPS=${BENCH_INSTALL_APPS} FRAPPE_APPS_BRANCH=${FRAPPE_APPS_BRANCH})" \
     && rm -rf /home/$systemUser/$benchFolderName/sites/site1.local \
     && bench remove-app erpnext --no-backup || true \
     && bench remove-app payments --no-backup || true \
@@ -29,13 +32,23 @@ RUN echo "-> Start builder (BENCH_INSTALL_APPS=${BENCH_INSTALL_APPS})" \
     && rm -rf /home/$systemUser/$benchFolderName/apps/payments \
     && case " ${BENCH_INSTALL_APPS} " in \
          *" payments "*) \
-           echo "-> get-app payments" \
-           && bench get-app --branch version-15 https://github.com/frappe/payments ;; \
+           echo "-> get-app payments@${FRAPPE_APPS_BRANCH}" \
+           && bench get-app --branch ${FRAPPE_APPS_BRANCH} https://github.com/frappe/payments ;; \
        esac \
     && case " ${BENCH_INSTALL_APPS} " in \
          *" erpnext "*) \
            echo "-> get-app erpnext from ${CUSTOM_ERPNEXT_GITHUB_PATH}@${CUSTOM_ERPNEXT_BRANCH}" \
            && bench get-app --branch ${CUSTOM_ERPNEXT_BRANCH} https://${GITHUB_PAT_TOKEN}@github.com/${CUSTOM_ERPNEXT_GITHUB_PATH} ;; \
+       esac \
+    && case " ${BENCH_INSTALL_APPS} " in \
+         *" hrms "*) \
+           echo "-> get-app hrms@${FRAPPE_APPS_BRANCH}" \
+           && bench get-app --branch ${FRAPPE_APPS_BRANCH} https://github.com/frappe/hrms ;; \
+       esac \
+    && case " ${BENCH_INSTALL_APPS} " in \
+         *" crm "*) \
+           echo "-> get-app crm@${FRAPPE_APPS_BRANCH}" \
+           && bench get-app --branch ${FRAPPE_APPS_BRANCH} https://github.com/frappe/crm ;; \
        esac \
     && if [ -n "${CUSTOM_WHITELIST_GITHUB_PATH}" ]; then \
          echo "-> get-app whitelist ${CUSTOM_WHITELIST_GITHUB_PATH}@${CUSTOM_WHITELIST_BRANCH}" \
