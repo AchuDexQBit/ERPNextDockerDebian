@@ -5,10 +5,14 @@
 # Client-specific values: copy deploy/client.env.example -> deploy/client.env and pass build-args
 # (see hetzner/docker-compose.yml and aws/docker-compose.yml).
 
+# Global ARGs for FROM (must be before first FROM).
+ARG PIPECH_IMAGE_TAG=version-15-latest
+# v15: frappe/bench:v5.22.9 (Python ~3.11). v16: frappe/bench:v5.29.0+ (Python 3.14).
+ARG FRAPPE_BENCH_IMAGE=frappe/bench:v5.22.9
+
 # ------------------------------------------
 # - Stage: 01 - builder
 # ------------------------------------------
-ARG PIPECH_IMAGE_TAG=version-15-latest
 FROM pipech/erpnext-docker-debian:${PIPECH_IMAGE_TAG} AS builder
 
 USER $systemUser
@@ -61,8 +65,6 @@ RUN echo "-> Start builder (BENCH_INSTALL_APPS=${BENCH_INSTALL_APPS} FRAPPE_APPS
 # ------------------------------------------
 # - Stage: 02 - production
 # ------------------------------------------
-# v15: frappe/bench:v5.22.9 (Python ~3.11). v16: frappe/bench:v5.29.0+ (Python 3.14).
-ARG FRAPPE_BENCH_IMAGE=frappe/bench:v5.22.9
 FROM ${FRAPPE_BENCH_IMAGE}
 
 ENV systemUser=frappe
