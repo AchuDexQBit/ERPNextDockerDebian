@@ -19,8 +19,10 @@ ARG CUSTOM_ERPNEXT_BRANCH=prod
 ARG CUSTOM_ERPNEXT_GITHUB_PATH=DexQBit/erpnext
 ARG CUSTOM_WHITELIST_GITHUB_PATH=
 ARG CUSTOM_WHITELIST_BRANCH=prod
-# Official frappe/* apps (payments, hrms, crm): e.g. version-15 / version-16
+# Official frappe/payments + frappe/hrms: e.g. version-15 / version-16
 ARG FRAPPE_APPS_BRANCH=version-15
+# frappe/crm has no version-N branches; use main (or develop)
+ARG CRM_BRANCH=main
 # Space-separated: erpnext / payments / hrms / crm / custom app folder names.
 ARG BENCH_INSTALL_APPS=erpnext
 
@@ -47,8 +49,8 @@ RUN echo "-> Start builder (BENCH_INSTALL_APPS=${BENCH_INSTALL_APPS} FRAPPE_APPS
        esac \
     && case " ${BENCH_INSTALL_APPS} " in \
          *" crm "*) \
-           echo "-> get-app crm@${FRAPPE_APPS_BRANCH}" \
-           && bench get-app --branch ${FRAPPE_APPS_BRANCH} https://github.com/frappe/crm ;; \
+           echo "-> get-app crm@${CRM_BRANCH}" \
+           && bench get-app --branch ${CRM_BRANCH} https://github.com/frappe/crm ;; \
        esac \
     && if [ -n "${CUSTOM_WHITELIST_GITHUB_PATH}" ]; then \
          echo "-> get-app whitelist ${CUSTOM_WHITELIST_GITHUB_PATH}@${CUSTOM_WHITELIST_BRANCH}" \
