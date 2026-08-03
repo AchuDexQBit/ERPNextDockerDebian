@@ -16,7 +16,7 @@ CI always checks out this repo’s `**prod**` branch. Clients are distinguished 
 | `client-stage-deploy` | Build + push; `CUSTOM_WHITELIST_BRANCH=stage` |
 | `client-prod-deploy`  | Build + push; `CUSTOM_WHITELIST_BRANCH=prod`  |
 
-Image tag: `ghcr.io/dexqbit/erpnext-{client}-{stage|prod}:latest`
+Image tag: `ghcr.io/dexqbit/{client}-{stage|prod}:latest`
 
 ## Required `client_payload` fields
 
@@ -53,7 +53,7 @@ curl -i -X POST \
   }'
 ```
 
-Produces: `ghcr.io/dexqbit/erpnext-sparebox-stage:latest`
+Produces: `ghcr.io/dexqbit/sparebox-stage:latest`
 
 ## Prod (Sparebox)
 
@@ -72,7 +72,7 @@ curl -i -X POST \
   }'
 ```
 
-Produces: `ghcr.io/dexqbit/erpnext-sparebox-prod:latest`
+Produces: `ghcr.io/dexqbit/sparebox-prod:latest`
 
 ## Dexi (v16 + HRMS + CRM)
 

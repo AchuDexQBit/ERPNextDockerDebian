@@ -8,7 +8,7 @@ on:
 
 env:
   REGISTRY: ghcr.io
-  IMAGE_PREFIX: ghcr.io/dexqbit/erpnext
+  IMAGE_PREFIX: ghcr.io/dexqbit
   CHECKOUT_REF: prod
 
 jobs:
@@ -56,7 +56,7 @@ jobs:
       - name: Derive image tag
         id: meta
         run: |
-          IMAGE_TAG="${{ env.IMAGE_PREFIX }}-${{ env.CLIENT }}-${{ env.TARGET_ENV }}:latest"
+          IMAGE_TAG="${{ env.IMAGE_PREFIX }}/${{ env.CLIENT }}-${{ env.TARGET_ENV }}:latest"
           echo "image_tag=${IMAGE_TAG}" >> $GITHUB_OUTPUT
           echo "pipech_image_tag=${{ env.PIPECH_IMAGE_TAG }}"
           echo "frappe_bench_image=${{ env.FRAPPE_BENCH_IMAGE }}"
