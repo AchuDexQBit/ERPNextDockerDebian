@@ -61,7 +61,9 @@ RUN echo "-> Start builder (BENCH_INSTALL_APPS=${BENCH_INSTALL_APPS} FRAPPE_APPS
 # ------------------------------------------
 # - Stage: 02 - production
 # ------------------------------------------
-FROM frappe/bench:v5.22.9
+# v15: frappe/bench:v5.22.9 (Python ~3.11). v16: frappe/bench:v5.29.0+ (Python 3.14).
+ARG FRAPPE_BENCH_IMAGE=frappe/bench:v5.22.9
+FROM ${FRAPPE_BENCH_IMAGE}
 
 ENV systemUser=frappe
 ENV benchFolderName=bench

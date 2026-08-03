@@ -24,6 +24,7 @@ jobs:
       WHITELIST_GITHUB_PATH: ${{ github.event.client_payload.whitelist_github_path }}
       BENCH_INSTALL_APPS: ${{ github.event.client_payload.bench_install_apps }}
       PIPECH_IMAGE_TAG: ${{ github.event.client_payload.pipech_image_tag || 'version-15-latest' }}
+      FRAPPE_BENCH_IMAGE: ${{ github.event.client_payload.frappe_bench_image || 'frappe/bench:v5.22.9' }}
       FRAPPE_APPS_BRANCH: ${{ github.event.client_payload.frappe_apps_branch || 'version-15' }}
       CRM_BRANCH: ${{ github.event.client_payload.crm_branch || 'main' }}
       ERPNEXT_BRANCH: ${{ github.event.client_payload.erpnext_branch || 'prod' }}
@@ -58,6 +59,7 @@ jobs:
           IMAGE_TAG="${{ env.IMAGE_PREFIX }}-${{ env.CLIENT }}-${{ env.TARGET_ENV }}:latest"
           echo "image_tag=${IMAGE_TAG}" >> $GITHUB_OUTPUT
           echo "pipech_image_tag=${{ env.PIPECH_IMAGE_TAG }}"
+          echo "frappe_bench_image=${{ env.FRAPPE_BENCH_IMAGE }}"
           echo "frappe_apps_branch=${{ env.FRAPPE_APPS_BRANCH }}"
           echo "crm_branch=${{ env.CRM_BRANCH }}"
           echo "erpnext_branch=${{ env.ERPNEXT_BRANCH }}"
@@ -87,6 +89,7 @@ jobs:
             GITHUB_PAT_TOKEN=${{ secrets.CUSTOMISATION_TOKEN }}
             DEPLOY_TARGET=ci
             PIPECH_IMAGE_TAG=${{ env.PIPECH_IMAGE_TAG }}
+            FRAPPE_BENCH_IMAGE=${{ env.FRAPPE_BENCH_IMAGE }}
             FRAPPE_APPS_BRANCH=${{ env.FRAPPE_APPS_BRANCH }}
             CRM_BRANCH=${{ env.CRM_BRANCH }}
             CUSTOM_ERPNEXT_BRANCH=${{ env.ERPNEXT_BRANCH }}

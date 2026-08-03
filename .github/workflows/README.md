@@ -30,10 +30,11 @@ Image tag: `ghcr.io/dexqbit/erpnext-{client}-{stage|prod}:latest`
 
 | Field                | Default             | Purpose                                                               |
 | -------------------- | ------------------- | --------------------------------------------------------------------- |
-| `pipech_image_tag`   | `version-15-latest` | Builder base: `pipech/erpnext-docker-debian:{tag}`                    |
-| `frappe_apps_branch` | `version-15`        | Branch for official `frappe/payments` and `frappe/hrms`               |
-| `crm_branch`         | `main`              | Branch for official `frappe/crm` (no `version-N`; use `main`)         |
-| `erpnext_branch`     | `prod`              | Branch on `DexQBit/erpnext` when `erpnext` is in `bench_install_apps` |
+| `pipech_image_tag`   | `version-15-latest`   | Builder base: `pipech/erpnext-docker-debian:{tag}`                    |
+| `frappe_bench_image` | `frappe/bench:v5.22.9` | Production stage base (must match Python: v15→v5.22.9, v16→v5.29.0) |
+| `frappe_apps_branch` | `version-15`          | Branch for official `frappe/payments` and `frappe/hrms`               |
+| `crm_branch`         | `main`                | Branch for official `frappe/crm` (no `version-N`; use `main`)         |
+| `erpnext_branch`     | `prod`                | Branch on `DexQBit/erpnext` when `erpnext` is in `bench_install_apps` |
 
 ## Stage (Sparebox / v15 defaults)
 
@@ -87,6 +88,7 @@ curl -i -X POST \
       "whitelist_github_path": "DexQBit/erpnext_app_dexi",
       "bench_install_apps": "erpnext hrms crm erpnext_app_dexi",
       "pipech_image_tag": "version-16-latest",
+      "frappe_bench_image": "frappe/bench:v5.29.0",
       "frappe_apps_branch": "version-16",
       "crm_branch": "main",
       "erpnext_branch": "version-16"
@@ -95,6 +97,7 @@ curl -i -X POST \
 ```
 
 - Base image: `pipech/erpnext-docker-debian:version-16-latest`
+- Production base: `frappe/bench:v5.29.0` (Python 3.14 for v16; `v5.22.9` lacks that Python → `bench build` FileNotFoundError)
 - ERPNext: `DexQBit/erpnext@version-16`
 - HRMS: official `frappe/hrms@version-16`
 - CRM: official `frappe/crm@main` (CRM has no `version-16` branch)
