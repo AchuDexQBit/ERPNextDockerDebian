@@ -120,3 +120,27 @@ docker compose -p COMPOSE_PROJECT -f compose.yml --env-file ENV_FILE exec --user
 docker compose -p COMPOSE_PROJECT -f compose.yml --env-file ENV_FILE exec --user frappe erpnext bash -c "bench build"
 docker compose -p COMPOSE_PROJECT -f compose.yml --env-file ENV_FILE exec --user frappe erpnext bash -c "bench --site SITE clear-cache"
 ```
+
+### List apps in the image / installed on the site
+
+```bash
+# Apps present under bench/apps (baked into the image)
+docker compose -p COMPOSE_PROJECT -f compose.yml --env-file ENV_FILE exec --user frappe erpnext bash -c "ls apps"
+
+# Apps installed on the site
+docker compose -p COMPOSE_PROJECT -f compose.yml --env-file ENV_FILE exec --user frappe erpnext bash -c "bench --site SITE list-apps"
+```
+
+### Install an extra app on an existing site
+
+The app must already be in the image (`ls apps`). First-boot installs use `BENCH_INSTALL_APPS` in the env file; for an existing site, install manually then migrate:
+
+```bash
+docker compose -p COMPOSE_PROJECT -f compose.yml --env-file ENV_FILE exec --user frappe erpnext bash -c "bench --site SITE install-app hrms"
+docker compose -p COMPOSE_PROJECT -f compose.yml --env-file ENV_FILE exec --user frappe erpnext bash -c "bench --site SITE install-app crm"
+docker compose -p COMPOSE_PROJECT -f compose.yml --env-file ENV_FILE exec --user frappe erpnext bash -c "bench --site SITE migrate"
+docker compose -p COMPOSE_PROJECT -f compose.yml --env-file ENV_FILE exec --user frappe erpnext bash -c "bench build"
+docker compose -p COMPOSE_PROJECT -f compose.yml --env-file ENV_FILE exec --user frappe erpnext bash -c "bench --site SITE clear-cache"
+```
+
+Replace `hrms` / `crm` with any other app folder name under `bench/apps`.
